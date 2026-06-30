@@ -1793,9 +1793,14 @@ function renderRoulette(){
       const degPerSlice = 360/15;
       const sliceCenter = (15-r.result)*degPerSlice + degPerSlice/2;
       const targetAngle = 360*5 - sliceCenter;
+      // Doble requestAnimationFrame: en WebView de Android un solo rAF no
+      // garantiza que el navegador pinte el estado "transition:none" antes
+      // de aplicar la transición real, por lo que la rueda nunca animaba.
       requestAnimationFrame(()=>{
-        wheel.style.transition = 'transform 4s cubic-bezier(.17,.67,.12,1)';
-        wheel.style.transform = `rotate(${targetAngle}deg)`;
+        requestAnimationFrame(()=>{
+          wheel.style.transition = 'transform 4s cubic-bezier(.17,.67,.12,1)';
+          wheel.style.transform = `rotate(${targetAngle}deg)`;
+        });
       });
       playBeep(300,0.1,'sawtooth');
       setTimeout(()=>{
