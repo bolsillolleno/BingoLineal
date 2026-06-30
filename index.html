@@ -517,10 +517,6 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
     <div id="firebase-status" style="margin-top:30px;font-size:12px;color:var(--gray);">
       Conectando con Firebase…
     </div>
-    <div style="margin-top:20px;background:rgba(255,215,0,0.05);border:1px solid rgba(255,215,0,0.15);border-radius:12px;padding:16px 24px;max-width:480px;margin-inline:auto;">
-      <p style="font-size:12px;color:var(--gray);margin-bottom:8px;">⚙️ Configura tu Firebase:</p>
-      <button class="btn btn-ghost btn-sm" onclick="openFirebaseConfig()">Configurar Firebase</button>
-    </div>
   </div>
 </div>
 
@@ -854,7 +850,18 @@ let autoInterval = null;
 let autoActive   = false;
 let remainingBalls = [];   // shuffled pool
 
-// ─── Firebase ───────────────────────────────
+// ─── Firebase (preconfigurado) ───────────────
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyA2_BKI_kA3QdmXFEV08Pd3Vu2yWgJ15hU",
+  authDomain: "bolsillolleno-5d1f8.firebaseapp.com",
+  databaseURL: "https://bolsillolleno-5d1f8-default-rtdb.firebaseio.com",
+  projectId: "bolsillolleno-5d1f8",
+  storageBucket: "bolsillolleno-5d1f8.firebasestorage.app",
+  messagingSenderId: "589773139731",
+  appId: "1:589773139731:web:ab6495056a3697b752f4e6"
+};
+const ADMIN_UID = 'QpdUwY7avJf8WhZ9N7ZIdd4ZUZA3';
+
 let db = null;
 let offlineMode = false;
 let firebaseRef = null;
@@ -900,8 +907,7 @@ let currentUser = null;
 
 function goToAdmin(){
   if(!db){
-    showToast('Configura Firebase primero','error');
-    openFirebaseConfig();
+    showToast('Conectando con Firebase, espera un momento…','error');
     return;
   }
   if(currentUser){
@@ -922,6 +928,12 @@ function doLogin(){
   }
   firebase.auth().signInWithEmailAndPassword(email, pass)
     .then(cred=>{
+      if(cred.user.uid !== ADMIN_UID){
+        firebase.auth().signOut();
+        errEl.textContent = 'Esta cuenta no tiene permisos de administrador.';
+        errEl.style.display = 'block';
+        return;
+      }
       currentUser = cred.user;
       showToast('Bienvenido, '+(cred.user.email||'admin'),'success');
       goTo('admin');
@@ -955,7 +967,16 @@ function doLogout(){
 function watchAuthState(){
   if(!firebase.apps.length) return;
   firebase.auth().onAuthStateChanged(user=>{
-    currentUser = user;
+    if(user && user.uid === ADMIN_UID){
+      currentUser = user;
+    } else {
+      currentUser = null;
+      if(user){
+        // Logged in but not the authorized admin
+        firebase.auth().signOut();
+        showToast('Esta cuenta no tiene permisos de administrador','error');
+      }
+    }
   });
 }
 
@@ -1033,14 +1054,8 @@ function tryLoadSaved(){
         state.lines = Array.from({length:15},()=>({name:'',phone:'',notes:'',status:'free'}));
     }catch(e){}
   }
-  // Try saved firebase config
-  const fbCfg = localStorage.getItem('bl-firebase-config');
-  if(fbCfg){
-    try{ initFirebase(JSON.parse(fbCfg)); }catch(e){}
-  } else {
-    document.getElementById('firebase-status').textContent =
-      '⚠️ Sin Firebase configurado – pulsa "Configurar Firebase" o usa modo demo.';
-  }
+  // Auto-connect to preconfigured Firebase project
+  initFirebase(FIREBASE_CONFIG);
 }
 
 function saveLocal(){
