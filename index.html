@@ -394,7 +394,7 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
 .roulette-result.won{color:var(--gold);font-family:var(--ff-num);font-size:32px;animation:bounce .7s ease infinite;}
 .roulette-numbers{position:absolute;inset:0;pointer-events:none;}
 .roulette-num{
-  position:absolute;top:50%;left:50%;
+  position:absolute;top:0;left:0;
   font-family:var(--ff-num);font-size:clamp(13px,2.4vw,18px);
   color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.8);
   transform-origin:0 0;
@@ -790,6 +790,7 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
     <button class="modal-close" onclick="closeModal('line-modal')">✕</button>
     <div class="modal-title">✏️ LÍNEA <span id="modal-line-num">1</span></div>
     <input type="hidden" id="modal-line-idx"/>
+    <input type="hidden" id="modal-archive-id" value=""/>
     <div class="form-group" style="margin-bottom:10px;">
       <label>Nombre del cliente</label>
       <input id="modal-name" type="text" placeholder="Ej: María García"/>
@@ -820,6 +821,16 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
       <button class="btn btn-gold" onclick="saveLine()" style="flex:1">💾 Guardar</button>
       <button class="btn btn-red btn-sm" onclick="deleteLine()">🗑️ Borrar</button>
     </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ ARCHIVED ROUND MODAL ═══════════════════ -->
+<div class="modal-overlay" id="archive-modal">
+  <div class="modal" style="max-width:480px;">
+    <button class="modal-close" onclick="closeModal('archive-modal')">✕</button>
+    <div class="modal-title">👥 Participantes Ronda <span id="archive-round-num">1</span></div>
+    <p style="font-size:11px;color:var(--gray);margin-bottom:10px;">Toca una línea para editarla.</p>
+    <div id="archive-lines-list" style="display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow-y:auto;"></div>
   </div>
 </div>
 
@@ -867,14 +878,14 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
   <div class="roulette-title">🎡 RULETA DEL ACUMULADO</div>
   <div style="position:relative;">
     <div class="roulette-pointer">▼</div>
-    <div class="roulette-wheel" id="roulette-wheel">
+    <div class="roulette-wheel" id="roulette-wheel" onclick="spinRoulette()" style="cursor:pointer;">
       <div class="roulette-numbers" id="roulette-numbers"></div>
       <div class="roulette-center" id="roulette-number">?</div>
     </div>
   </div>
   <div class="roulette-result" id="roulette-result">Girando…</div>
   <button class="btn btn-gold" id="roulette-spin-btn" onclick="spinRoulette()" style="font-size:16px;padding:14px 32px;">
-    🎲 GIRAR
+    🎲 TOCA LA RULETA O PULSA AQUÍ PARA GIRAR
   </button>
   <button class="btn btn-ghost btn-sm" id="roulette-close-btn" style="display:none" onclick="closeRoulette()">
     Cerrar y continuar
@@ -908,6 +919,7 @@ let state = {
   winner: null,         // { lineIdx, name, prize, ts }
   accumWon: false,
   history: [],
+  roundsArchive: [],     // [{id, round, date, time, lines:[...]}] snapshot of participants per past round
   roulette: { active:false, spinning:false, result:null, won:false, ts:0 },
   config: { jackpotMode:'normal', lowChance:5 },
 };
@@ -917,7 +929,7 @@ let autoInterval = null;
 let autoActive   = false;
 let remainingBalls = [];   // shuffled pool
 let lastWinnerTs = 0;
-let lastRouletteTs = 0;
+let lastRouletteTs = -1;
 
 // ─── Firebase (preconfigurado) ───────────────
 const FIREBASE_CONFIG = {
@@ -1102,6 +1114,7 @@ function doInitFirebase(cfg){
         if(!data.lines) state.lines = Array.from({length:15},()=>({name:'',phone:'',notes:'',status:'free'}));
         if(!data.balls) state.balls = [];
         if(!data.history) state.history = [];
+        if(!data.roundsArchive) state.roundsArchive = [];
         if(!data.roulette) state.roulette = { active:false, spinning:false, result:null, won:false, ts:0 };
         if(!data.config) state.config = { jackpotMode:'normal', lowChance:5 };
         renderAll();
@@ -1128,6 +1141,7 @@ function tryLoadSaved(){
       if(!state.lines||state.lines.length!==15)
         state.lines = Array.from({length:15},()=>({name:'',phone:'',notes:'',status:'free'}));
       if(!state.roulette) state.roulette = { active:false, spinning:false, result:null, won:false, ts:0 };
+      if(!state.roundsArchive) state.roundsArchive = [];
       if(!state.config) state.config = { jackpotMode:'normal', lowChance:5 };
     }catch(e){}
   }
@@ -1297,9 +1311,37 @@ function resetBoard(){
   renderAll();
   showToast('Tablero reiniciado','success');
 }
+function openArchiveRound(id){
+  const entry = state.roundsArchive.find(a=>a.id===id);
+  if(!entry) return;
+  document.getElementById('archive-round-num').textContent = entry.round;
+  const statusIcon = {free:'⬜',pending:'❌',paid:'✅'};
+  document.getElementById('archive-lines-list').innerHTML = entry.lines.map((l,i)=>`
+    <div onclick="openLineModal(${i}, ${id})" style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 12px;cursor:pointer;">
+      <span style="font-size:13px;">${statusIcon[l.status||'free']} Línea ${i+1}: ${l.name ? l.name : '<span style=\"color:var(--gray)\">vacía</span>'}</span>
+      <span style="font-size:11px;color:var(--gray);">${l.phone||''}</span>
+    </div>
+  `).join('');
+  openModal('archive-modal');
+}
+
 function newRound(){
+  const hasParticipants = state.lines.some(l=>l.name && l.name.trim()!=='');
+  if(hasParticipants && !confirm(
+    `Esto archivará la lista de participantes de la Ronda ${state.round} (la podrás ver/editar en Historial) y comenzará la Ronda ${(parseInt(state.round)||1)+1} con líneas vacías.\n\n¿Deseas continuar?`
+  )) return;
   pauseAutoMode();
   const accumWon = state.accumWon;
+  // Archive a snapshot of this round's participants before wiping them
+  if(hasParticipants){
+    state.roundsArchive = [{
+      id: Date.now(),
+      round: state.round,
+      date: new Date().toLocaleDateString('es-CO'),
+      time: new Date().toLocaleTimeString('es-CO'),
+      lines: JSON.parse(JSON.stringify(state.lines)),
+    }, ...(state.roundsArchive||[])].slice(0,50);
+  }
   state.balls = [];
   state.winner = null;
   state.status = 'idle';
@@ -1341,9 +1383,13 @@ function saveHistory(){
 }
 
 // ─── Lines CRUD ─────────────────────────────
-function openLineModal(idx){
-  const l = state.lines[idx];
+// archiveId: null = current/live round. Otherwise edits a past round's archived snapshot.
+function openLineModal(idx, archiveId=null){
+  const l = archiveId
+    ? state.roundsArchive.find(a=>a.id===archiveId).lines[idx]
+    : state.lines[idx];
   document.getElementById('modal-line-idx').value = idx;
+  document.getElementById('modal-archive-id').value = archiveId || '';
   document.getElementById('modal-line-num').textContent = idx+1;
   document.getElementById('modal-name').value = l.name||'';
   document.getElementById('modal-phone').value = l.phone||'';
@@ -1354,13 +1400,21 @@ function openLineModal(idx){
 }
 function saveLine(){
   const idx = parseInt(document.getElementById('modal-line-idx').value);
+  const archiveIdRaw = document.getElementById('modal-archive-id').value;
+  const archiveId = archiveIdRaw ? parseInt(archiveIdRaw) : null;
   const status = document.querySelector('input[name=pay-status]:checked')?.value || 'free';
-  state.lines[idx] = {
+  const newLine = {
     name: document.getElementById('modal-name').value.trim(),
     phone: document.getElementById('modal-phone').value.trim(),
     notes: document.getElementById('modal-notes').value.trim(),
     status,
   };
+  if(archiveId){
+    const entry = state.roundsArchive.find(a=>a.id===archiveId);
+    if(entry) entry.lines[idx] = newLine;
+  } else {
+    state.lines[idx] = newLine;
+  }
   saveToFirebase(); saveLocal();
   renderAll();
   closeModal('line-modal');
@@ -1368,7 +1422,15 @@ function saveLine(){
 }
 function deleteLine(){
   const idx = parseInt(document.getElementById('modal-line-idx').value);
-  state.lines[idx] = {name:'',phone:'',notes:'',status:'free'};
+  const archiveIdRaw = document.getElementById('modal-archive-id').value;
+  const archiveId = archiveIdRaw ? parseInt(archiveIdRaw) : null;
+  const emptyLine = {name:'',phone:'',notes:'',status:'free'};
+  if(archiveId){
+    const entry = state.roundsArchive.find(a=>a.id===archiveId);
+    if(entry) entry.lines[idx] = emptyLine;
+  } else {
+    state.lines[idx] = emptyLine;
+  }
   saveToFirebase(); saveLocal();
   renderAll();
   closeModal('line-modal');
@@ -1557,8 +1619,21 @@ function renderPubLines(){
 function renderHistory(){
   const el = document.getElementById('history-list');
   if(!el) return;
+  const archive = state.roundsArchive||[];
+  let archiveHtml = '';
+  if(archive.length){
+    archiveHtml = `<div style="margin-bottom:14px;">
+      <p style="font-size:12px;color:var(--gold);margin-bottom:6px;">📋 Participantes por ronda</p>
+      ${archive.map(a=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 12px;margin-bottom:6px;">
+          <span style="font-size:12px;">Ronda ${a.round} <span style="color:var(--gray);">(${a.date})</span></span>
+          <button class="btn btn-ghost btn-sm" onclick="openArchiveRound(${a.id})">👥 Ver/Editar</button>
+        </div>
+      `).join('')}
+    </div>`;
+  }
   if(!state.history||state.history.length===0){
-    el.innerHTML='<p style="color:var(--gray);font-size:12px;">Sin partidas registradas.</p>';
+    el.innerHTML = archiveHtml + (archive.length ? '' : '<p style="color:var(--gray);font-size:12px;">Sin partidas registradas.</p>');
     return;
   }
   const rows = state.history.map(h=>`
@@ -1570,7 +1645,7 @@ function renderHistory(){
       <td>${h.prize}</td>
     </tr>
   `).join('');
-  el.innerHTML = `<table class="history-table">
+  el.innerHTML = archiveHtml + `<table class="history-table">
     <tr><th>#</th><th>Fecha</th><th>Ganador</th><th>Línea</th><th>Premio</th></tr>
     ${rows}
   </table>`;
@@ -1716,7 +1791,8 @@ function renderRoulette(){
       wheel.style.transform = 'rotate(0deg)';
       void wheel.offsetWidth;
       const degPerSlice = 360/15;
-      const targetAngle = 360*5 + (15-r.result)*degPerSlice + degPerSlice/2;
+      const sliceCenter = (15-r.result)*degPerSlice + degPerSlice/2;
+      const targetAngle = 360*5 - sliceCenter;
       requestAnimationFrame(()=>{
         wheel.style.transition = 'transform 4s cubic-bezier(.17,.67,.12,1)';
         wheel.style.transform = `rotate(${targetAngle}deg)`;
@@ -1731,7 +1807,7 @@ function renderRoulette(){
           spawnConfetti();
         } else {
           resultEl.className = 'roulette-result';
-          resultEl.textContent = `La ruleta cayó en la línea ${r.result}. El acumulado de ${state.accum} continúa para la siguiente ronda.`;
+          resultEl.textContent = `La ruleta cayó en la línea ${r.result}. El acumulado SIGUE CRECIENDO y ya va en ${state.accum} 💰 ¿Quién se lo llevará en la próxima ronda? No te quedes por fuera... ¡Asegura tu cartón ahora!`;
           playBeep(220,0.3,'sine');
         }
         const sb = document.getElementById('roulette-spin-btn');
