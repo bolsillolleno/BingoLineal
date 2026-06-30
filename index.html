@@ -1,0 +1,1593 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Bolsillo Lleno – Bingo Lineal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+
+<style>
+/* ═══════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════ */
+:root{
+  --bg:       #0d0720;
+  --bg2:      #160e30;
+  --bg3:      #1e1445;
+  --gold:     #FFD700;
+  --gold2:    #FFA500;
+  --red:      #C0392B;
+  --red2:     #E74C3C;
+  --green:    #27AE60;
+  --green2:   #2ECC71;
+  --purple:   #8A2BE2;
+  --purple2:  #9B59B6;
+  --white:    #FFFFFF;
+  --gray:     #8892a4;
+  --border:   rgba(255,215,0,0.15);
+  --radius:   12px;
+  --ff-num:   'Bebas Neue', sans-serif;
+  --ff-ui:    'Inter', sans-serif;
+  --shadow:   0 4px 24px rgba(0,0,0,0.5);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--white);overflow-x:hidden;}
+
+/* ═══════════════════════════════════════
+   SCROLLBAR
+═══════════════════════════════════════ */
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:var(--bg2);}
+::-webkit-scrollbar-thumb{background:var(--gold);border-radius:3px;}
+
+/* ═══════════════════════════════════════
+   ROUTER VIEWS
+═══════════════════════════════════════ */
+.view{display:none;min-height:100vh;}
+.view.active{display:flex;flex-direction:column;}
+
+/* ═══════════════════════════════════════
+   LANDING / ROUTER PAGE
+═══════════════════════════════════════ */
+#view-home{
+  align-items:center;justify-content:center;
+  background: radial-gradient(ellipse at center, #1e1445 0%, #0d0720 70%);
+}
+.home-logo{
+  font-family:var(--ff-num);font-size:clamp(48px,8vw,90px);
+  color:var(--gold);text-shadow:0 0 40px rgba(255,215,0,0.5);
+  letter-spacing:4px;text-align:center;line-height:1;
+}
+.home-sub{color:var(--gray);font-size:14px;letter-spacing:3px;text-transform:uppercase;margin:8px 0 40px;}
+.home-buttons{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;}
+.btn-home{
+  padding:16px 40px;border-radius:50px;border:none;cursor:pointer;
+  font-family:var(--ff-num);font-size:20px;letter-spacing:2px;
+  transition:all .2s;text-decoration:none;display:inline-block;
+}
+.btn-home.admin{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a0a2e;}
+.btn-home.public{background:transparent;border:2px solid var(--gold);color:var(--gold);}
+.btn-home:hover{transform:translateY(-3px);box-shadow:0 8px 30px rgba(255,215,0,0.3);}
+
+/* ═══════════════════════════════════════
+   SHARED TOP BAR
+═══════════════════════════════════════ */
+.topbar{
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  padding:10px 20px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;flex-shrink:0;
+}
+.topbar-logo{font-family:var(--ff-num);font-size:22px;color:var(--gold);letter-spacing:2px;}
+.topbar-info{display:flex;gap:20px;align-items:center;}
+.info-chip{
+  background:var(--bg3);border:1px solid var(--border);
+  padding:4px 12px;border-radius:20px;font-size:12px;
+}
+.info-chip span{color:var(--gold);font-weight:600;}
+.btn-back{
+  background:none;border:1px solid var(--border);color:var(--gray);
+  padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;
+}
+.btn-back:hover{color:var(--white);border-color:var(--white);}
+
+/* ═══════════════════════════════════════
+   ADMIN LAYOUT
+═══════════════════════════════════════ */
+#view-admin .content{
+  display:grid;
+  grid-template-columns:260px 1fr 280px;
+  gap:16px;padding:16px;flex:1;
+  overflow:hidden;
+}
+@media(max-width:1100px){
+  #view-admin .content{grid-template-columns:1fr;overflow:auto;}
+}
+
+/* ═══════════════════════════════════════
+   PANELS
+═══════════════════════════════════════ */
+.panel{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:16px;overflow-y:auto;
+}
+.panel-title{
+  font-family:var(--ff-num);font-size:16px;letter-spacing:2px;
+  color:var(--gold);margin-bottom:12px;padding-bottom:8px;
+  border-bottom:1px solid var(--border);
+}
+
+/* ═══════════════════════════════════════
+   ROUND INFO FORM
+═══════════════════════════════════════ */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.form-group{display:flex;flex-direction:column;gap:4px;}
+.form-group label{font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:1px;}
+.form-group input,.form-group select{
+  background:var(--bg3);border:1px solid var(--border);color:var(--white);
+  padding:8px 10px;border-radius:8px;font-size:13px;
+}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--gold);}
+
+/* ═══════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════ */
+.btn{
+  padding:10px 16px;border-radius:8px;border:none;cursor:pointer;
+  font-size:12px;font-weight:600;letter-spacing:1px;transition:all .2s;
+  text-transform:uppercase;display:inline-flex;align-items:center;gap:6px;
+}
+.btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a0a2e;}
+.btn-gold:hover{box-shadow:0 4px 20px rgba(255,215,0,0.4);transform:translateY(-1px);}
+.btn-red{background:linear-gradient(135deg,var(--red),var(--red2));color:#fff;}
+.btn-red:hover{box-shadow:0 4px 20px rgba(192,57,43,0.4);}
+.btn-green{background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;}
+.btn-green:hover{box-shadow:0 4px 20px rgba(39,174,96,0.4);}
+.btn-purple{background:linear-gradient(135deg,var(--purple),var(--purple2));color:#fff;}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--gray);}
+.btn-ghost:hover{border-color:var(--white);color:var(--white);}
+.btn-sm{padding:6px 10px;font-size:11px;}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none !important;box-shadow:none !important;}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+
+/* Control panel buttons */
+.ctrl-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.ctrl-btn{
+  padding:12px 8px;border-radius:10px;border:none;cursor:pointer;
+  font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:4px;
+}
+.ctrl-btn .icon{font-size:22px;}
+.ctrl-btn.start{background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;}
+.ctrl-btn.pause{background:linear-gradient(135deg,#e67e22,#f39c12);color:#fff;}
+.ctrl-btn.stop{background:linear-gradient(135deg,var(--red),var(--red2));color:#fff;}
+.ctrl-btn.draw{background:linear-gradient(135deg,var(--purple),var(--purple2));color:#fff;}
+.ctrl-btn.reset{background:linear-gradient(135deg,#2c3e50,#34495e);color:#fff;}
+.ctrl-btn.auto{background:linear-gradient(135deg,#1a6b8a,#2980b9);color:#fff;}
+.ctrl-btn.auto.active{background:linear-gradient(135deg,#0fa36b,#16a085);box-shadow:0 0 20px rgba(22,160,133,0.5);}
+.ctrl-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow);}
+.ctrl-btn:disabled{opacity:.4;cursor:not-allowed;transform:none !important;box-shadow:none !important;}
+
+/* Speed select */
+.speed-row{margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--gray);}
+.speed-row select{
+  background:var(--bg3);border:1px solid var(--border);color:var(--white);
+  padding:5px 10px;border-radius:8px;font-size:12px;flex:1;
+}
+
+/* ═══════════════════════════════════════
+   BINGO BOARD
+═══════════════════════════════════════ */
+.board-wrap{display:flex;flex-direction:column;gap:16px;}
+.board-header{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:4px;text-align:center;
+}
+.col-label{
+  font-family:var(--ff-num);font-size:clamp(24px,3vw,36px);
+  padding:8px 0;border-radius:8px;
+}
+.col-B{color:var(--white);background:rgba(41,128,185,0.3);}
+.col-I{color:var(--white);background:rgba(39,174,96,0.3);}
+.col-N{color:var(--white);background:rgba(192,57,43,0.3);}
+.col-G{color:var(--white);background:rgba(142,68,173,0.3);}
+.col-O{color:var(--white);background:rgba(230,126,34,0.3);}
+
+.board-grid{
+  display:grid;grid-template-columns:repeat(5,1fr);
+  grid-template-rows:repeat(15,1fr);gap:4px;
+}
+.ball-cell{
+  aspect-ratio:1;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--ff-num);font-size:clamp(12px,1.5vw,18px);
+  background:var(--bg3);border:2px solid var(--border);
+  color:var(--gray);transition:all .4s;cursor:default;
+  position:relative;
+}
+.ball-cell.called{
+  background:radial-gradient(circle at 35% 35%, #b366ff, var(--purple));
+  border-color:var(--purple2);color:var(--white);
+  box-shadow:0 0 12px rgba(138,43,226,0.6),inset 0 1px 0 rgba(255,255,255,0.3);
+  animation:ballPop .35s ease-out;
+}
+.ball-cell.winner-line{
+  background:radial-gradient(circle at 35% 35%, #ffe066, var(--gold));
+  border-color:var(--gold);color:#1a0a2e;
+  box-shadow:0 0 20px rgba(255,215,0,0.8);
+  animation:winnerPulse 1s ease-in-out infinite;
+}
+@keyframes ballPop{
+  0%{transform:scale(.6);opacity:.3;}
+  70%{transform:scale(1.15);}
+  100%{transform:scale(1);opacity:1;}
+}
+@keyframes winnerPulse{
+  0%,100%{box-shadow:0 0 20px rgba(255,215,0,0.8);}
+  50%{box-shadow:0 0 40px rgba(255,215,0,1);}
+}
+
+/* ═══════════════════════════════════════
+   CURRENT BALL DISPLAY
+═══════════════════════════════════════ */
+.current-ball-wrap{
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;
+}
+.current-ball{
+  width:clamp(80px,12vw,120px);height:clamp(80px,12vw,120px);
+  border-radius:50%;
+  background:radial-gradient(circle at 35% 35%, #b366ff, var(--purple));
+  border:3px solid var(--purple2);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--ff-num);font-size:clamp(36px,6vw,60px);
+  box-shadow:0 0 30px rgba(138,43,226,0.7),inset 0 2px 0 rgba(255,255,255,0.3);
+  transition:all .3s;
+}
+.current-ball.empty{
+  background:var(--bg3);border-color:var(--border);color:var(--gray);
+  box-shadow:none;font-size:24px;
+}
+.ball-counter{font-size:13px;color:var(--gray);}
+.ball-counter span{color:var(--gold);font-weight:700;font-size:16px;}
+
+/* Recent balls */
+.recent-balls{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:4px;}
+.recent-ball{
+  width:36px;height:36px;border-radius:50%;
+  background:rgba(138,43,226,0.3);border:1px solid var(--purple2);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--ff-num);font-size:15px;color:var(--purple2);
+}
+
+/* ═══════════════════════════════════════
+   LINES PANEL (ADMIN)
+═══════════════════════════════════════ */
+.line-item{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:10px;padding:10px;margin-bottom:8px;
+  display:flex;align-items:center;gap:8px;cursor:pointer;
+  transition:all .2s;
+}
+.line-item:hover{border-color:var(--gold);transform:translateX(2px);}
+.line-item.paid{border-left:3px solid var(--green);}
+.line-item.pending{border-left:3px solid var(--red);}
+.line-item.free{border-left:3px solid var(--gray);opacity:.7;}
+.line-item.winner{border-left:3px solid var(--gold);background:rgba(255,215,0,0.1);animation:winnerPulse 1.5s infinite;}
+.line-num{
+  width:28px;height:28px;border-radius:50%;
+  background:var(--bg2);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--ff-num);font-size:16px;flex-shrink:0;
+}
+.line-info{flex:1;min-width:0;}
+.line-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.line-balls{font-size:10px;color:var(--gray);margin-top:2px;}
+.line-status{font-size:10px;font-weight:700;white-space:nowrap;}
+.status-paid{color:var(--green2);}
+.status-pending{color:var(--red2);}
+.status-free{color:var(--gray);}
+.line-actions{display:flex;gap:4px;}
+
+/* ═══════════════════════════════════════
+   MODAL
+═══════════════════════════════════════ */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.8);
+  display:none;align-items:center;justify-content:center;z-index:1000;
+  padding:20px;backdrop-filter:blur(4px);
+}
+.modal-overlay.open{display:flex;}
+.modal{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:16px;padding:24px;width:100%;max-width:420px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.8);
+  animation:modalIn .25s ease-out;
+}
+@keyframes modalIn{
+  from{transform:scale(.9);opacity:0;}
+  to{transform:scale(1);opacity:1;}
+}
+.modal-title{font-family:var(--ff-num);font-size:20px;color:var(--gold);margin-bottom:16px;letter-spacing:2px;}
+.modal-close{float:right;background:none;border:none;color:var(--gray);font-size:20px;cursor:pointer;}
+.modal-close:hover{color:var(--white);}
+.radio-group{display:flex;gap:8px;margin-top:4px;}
+.radio-group label{
+  flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;
+  display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;
+  transition:all .2s;
+}
+.radio-group input[type=radio]{accent-color:var(--gold);}
+.radio-group label.paid-l{border-color:var(--green);}
+.radio-group label.pending-l{border-color:var(--red);}
+
+/* ═══════════════════════════════════════
+   WINNER MODAL
+═══════════════════════════════════════ */
+.winner-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.92);
+  display:none;align-items:center;justify-content:center;z-index:2000;
+  flex-direction:column;gap:24px;text-align:center;
+  padding:20px;
+}
+.winner-overlay.open{display:flex;animation:fadeIn .5s;}
+.winner-trophy{font-size:80px;animation:bounce 1s ease infinite;}
+.winner-title{font-family:var(--ff-num);font-size:clamp(40px,8vw,80px);color:var(--gold);letter-spacing:4px;text-shadow:0 0 40px rgba(255,215,0,0.7);}
+.winner-name{font-size:clamp(20px,4vw,36px);font-weight:700;color:var(--white);}
+.winner-detail{font-size:16px;color:var(--gray);margin-top:4px;}
+.winner-prize{font-family:var(--ff-num);font-size:clamp(30px,5vw,50px);color:var(--green2);margin-top:8px;}
+.confetti-wrap{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+@keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-20px);}}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+
+/* Confetti particles */
+.confetti-piece{
+  position:absolute;width:10px;height:10px;
+  border-radius:2px;animation:confettiFall linear infinite;
+}
+@keyframes confettiFall{
+  0%{transform:translateY(-20px) rotate(0deg);opacity:1;}
+  100%{transform:translateY(100vh) rotate(720deg);opacity:0;}
+}
+
+/* ═══════════════════════════════════════
+   ROULETTE
+═══════════════════════════════════════ */
+.roulette-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.95);
+  display:none;align-items:center;justify-content:center;z-index:3000;
+  flex-direction:column;gap:20px;text-align:center;padding:20px;
+}
+.roulette-overlay.open{display:flex;animation:fadeIn .3s;}
+.roulette-title{font-family:var(--ff-num);font-size:clamp(28px,5vw,50px);color:var(--gold);letter-spacing:3px;}
+.roulette-wheel{
+  width:clamp(180px,40vw,300px);height:clamp(180px,40vw,300px);
+  border-radius:50%;border:6px solid var(--gold);
+  background:conic-gradient(
+    #8A2BE2 0deg 24deg, #C0392B 24deg 48deg, #27AE60 48deg 72deg,
+    #2980b9 72deg 96deg, #e67e22 96deg 120deg,
+    #8A2BE2 120deg 144deg, #C0392B 144deg 168deg, #27AE60 168deg 192deg,
+    #2980b9 192deg 216deg, #e67e22 216deg 240deg,
+    #8A2BE2 240deg 264deg, #C0392B 264deg 288deg, #27AE60 288deg 312deg,
+    #2980b9 312deg 336deg, #e67e22 336deg 360deg
+  );
+  position:relative;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 50px rgba(255,215,0,0.4);
+  transition:transform 4s cubic-bezier(.17,.67,.12,1);
+}
+.roulette-center{
+  width:50%;height:50%;border-radius:50%;
+  background:var(--bg);border:3px solid var(--gold);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--ff-num);font-size:40px;color:var(--gold);
+  z-index:1;
+}
+.roulette-pointer{
+  position:absolute;top:-18px;left:50%;transform:translateX(-50%);
+  font-size:30px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+}
+.roulette-result{font-size:18px;color:var(--white);max-width:400px;}
+.roulette-result.won{color:var(--gold);font-family:var(--ff-num);font-size:32px;animation:bounce .7s ease infinite;}
+
+/* ═══════════════════════════════════════
+   PUBLIC VIEW
+═══════════════════════════════════════ */
+#view-public{background:radial-gradient(ellipse at top, #1e1445 0%, #0d0720 60%);}
+#view-public .content{
+  display:grid;
+  grid-template-columns:200px 1fr 280px;
+  gap:16px;padding:16px;flex:1;
+  overflow:hidden;
+}
+@media(max-width:1000px){
+  #view-public .content{grid-template-columns:1fr;overflow:auto;}
+}
+
+/* Prize display */
+.prize-card{
+  background:linear-gradient(135deg,rgba(255,215,0,0.1),rgba(255,165,0,0.05));
+  border:1px solid rgba(255,215,0,0.3);border-radius:12px;
+  padding:16px;text-align:center;margin-bottom:10px;
+}
+.prize-label{font-size:10px;letter-spacing:2px;color:var(--gray);text-transform:uppercase;}
+.prize-value{font-family:var(--ff-num);font-size:clamp(22px,3vw,30px);color:var(--gold);}
+.prize-card.accum .prize-value{color:var(--green2);}
+
+/* Public lines */
+.pub-lines{display:flex;flex-direction:column;gap:6px;}
+.pub-line{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:8px;padding:8px 12px;
+  display:flex;align-items:center;gap:8px;
+}
+.pub-line.winner{
+  border-color:var(--gold);background:rgba(255,215,0,0.1);
+  animation:winnerPulse 1.5s infinite;
+}
+.pub-line-num{
+  font-family:var(--ff-num);font-size:18px;color:var(--gold);
+  width:24px;text-align:center;
+}
+.pub-line-info{flex:1;}
+.pub-line-name{font-size:13px;font-weight:600;}
+.pub-line-balls{font-size:10px;color:var(--gray);}
+.pub-line-progress{
+  display:flex;gap:3px;
+}
+.prog-dot{
+  width:10px;height:10px;border-radius:50%;
+  background:var(--bg2);border:1px solid var(--border);
+  transition:all .3s;
+}
+.prog-dot.hit{background:var(--purple);border-color:var(--purple2);box-shadow:0 0 6px rgba(138,43,226,0.5);}
+.prog-dot.hit.win{background:var(--gold);border-color:var(--gold2);box-shadow:0 0 6px rgba(255,215,0,0.8);}
+
+/* Toast notification */
+.toast{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);
+  background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+  padding:12px 24px;font-size:14px;z-index:9999;
+  transition:transform .3s;white-space:nowrap;
+  box-shadow:var(--shadow);
+}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.success{border-color:var(--green);color:var(--green2);}
+.toast.error{border-color:var(--red);color:var(--red2);}
+
+/* History table */
+.history-table{width:100%;border-collapse:collapse;font-size:12px;}
+.history-table th{padding:8px;text-align:left;color:var(--gray);border-bottom:1px solid var(--border);font-weight:500;}
+.history-table td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.05);}
+.history-table tr:hover td{background:rgba(255,255,255,0.03);}
+
+/* ═══════════════════════════════════════
+   GAME STATE BADGE
+═══════════════════════════════════════ */
+.state-badge{
+  padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;
+  letter-spacing:1px;text-transform:uppercase;
+}
+.state-idle{background:rgba(255,255,255,0.1);color:var(--gray);}
+.state-active{background:rgba(39,174,96,0.2);color:var(--green2);border:1px solid var(--green);}
+.state-paused{background:rgba(230,126,34,0.2);color:#f39c12;border:1px solid #e67e22;}
+.state-finished{background:rgba(192,57,43,0.2);color:var(--red2);border:1px solid var(--red);}
+
+/* ═══════════════════════════════════════
+   TABS (ADMIN)
+═══════════════════════════════════════ */
+.tab-row{display:flex;gap:4px;margin-bottom:12px;}
+.tab-btn{
+  padding:6px 12px;border-radius:6px;border:none;cursor:pointer;
+  font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;
+  background:var(--bg3);color:var(--gray);transition:all .2s;
+}
+.tab-btn.active{background:var(--gold);color:#1a0a2e;}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+/* ═══════════════════════════════════════
+   RESPONSIVIDAD MÓVIL
+═══════════════════════════════════════ */
+@media(max-width:700px){
+  .topbar-info{display:none;}
+  .form-grid{grid-template-columns:1fr;}
+  .ctrl-grid{grid-template-columns:repeat(3,1fr);}
+  .home-buttons{flex-direction:column;align-items:stretch;}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ HOME ═══════════════════ -->
+<div id="view-home" class="view active">
+  <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;">
+    <div id="stars-bg"></div>
+  </div>
+  <div style="position:relative;z-index:1;text-align:center;padding:40px 20px;">
+    <div class="home-logo">🎱 BOLSILLO<br>LLENO</div>
+    <div class="home-sub">Sistema de Bingo Lineal en Vivo</div>
+    <div class="home-buttons">
+      <button class="btn-home admin" onclick="goToAdmin()">⚙️ Panel Admin</button>
+      <button class="btn-home public" onclick="goTo('public')">📺 Pantalla Pública</button>
+    </div>
+    <div id="firebase-status" style="margin-top:30px;font-size:12px;color:var(--gray);">
+      Conectando con Firebase…
+    </div>
+    <div style="margin-top:20px;background:rgba(255,215,0,0.05);border:1px solid rgba(255,215,0,0.15);border-radius:12px;padding:16px 24px;max-width:480px;margin-inline:auto;">
+      <p style="font-size:12px;color:var(--gray);margin-bottom:8px;">⚙️ Configura tu Firebase:</p>
+      <button class="btn btn-ghost btn-sm" onclick="openFirebaseConfig()">Configurar Firebase</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ LOGIN ═══════════════════ -->
+<div id="view-login" class="view">
+  <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:20px;">
+    <div class="panel" style="max-width:380px;width:100%;">
+      <div class="panel-title" style="text-align:center;font-size:20px;">🔐 ACCESO ADMIN</div>
+      <div class="form-group" style="margin-bottom:10px;">
+        <label>Correo electrónico</label>
+        <input id="login-email" type="email" placeholder="admin@bolsillolleno.com"/>
+      </div>
+      <div class="form-group" style="margin-bottom:16px;">
+        <label>Contraseña</label>
+        <input id="login-password" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
+      </div>
+      <div id="login-error" style="color:var(--red2);font-size:12px;margin-bottom:10px;display:none;"></div>
+      <button class="btn btn-gold" style="width:100%" onclick="doLogin()">Ingresar</button>
+      <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;" onclick="goTo('home')">← Volver</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ ADMIN ═══════════════════ -->
+<div id="view-admin" class="view">
+  <div class="topbar">
+    <div class="topbar-logo">🎱 BOLSILLO LLENO</div>
+    <div class="topbar-info">
+      <div class="info-chip">Ronda <span id="a-round">1</span></div>
+      <div id="a-state-badge" class="state-badge state-idle">Inactivo</div>
+    </div>
+    <button class="btn-back" onclick="doLogout()">🚪 Salir</button>
+    <div style="display:flex;flex-direction:column;gap:12px;overflow-y:auto;">
+
+      <!-- Round Info -->
+      <div class="panel">
+        <div class="panel-title">ℹ️ Información de Ronda</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Ronda #</label>
+            <input id="inp-round" type="number" value="1" min="1"/>
+          </div>
+          <div class="form-group">
+            <label>Valor línea</label>
+            <input id="inp-price" type="text" placeholder="$5.000"/>
+          </div>
+          <div class="form-group">
+            <label>Premio</label>
+            <input id="inp-prize" type="text" placeholder="$50.000"/>
+          </div>
+          <div class="form-group">
+            <label>Acumulado</label>
+            <input id="inp-accum" type="text" placeholder="$100.000"/>
+          </div>
+        </div>
+        <button class="btn btn-gold" style="width:100%" onclick="saveRoundInfo()">💾 Guardar</button>
+      </div>
+
+      <!-- Game Controls -->
+      <div class="panel">
+        <div class="panel-title">🎮 Controles del Juego</div>
+        <div class="ctrl-grid">
+          <button class="ctrl-btn start" id="btn-start" onclick="startGame()">
+            <span class="icon">▶️</span>Iniciar
+          </button>
+          <button class="ctrl-btn pause" id="btn-pause" onclick="pauseGame()" disabled>
+            <span class="icon">⏸️</span>Pausar
+          </button>
+          <button class="ctrl-btn start" id="btn-resume" onclick="resumeGame()" disabled style="display:none">
+            <span class="icon">▶️</span>Continuar
+          </button>
+          <button class="ctrl-btn stop" id="btn-stop" onclick="stopGame()" disabled>
+            <span class="icon">⏹️</span>Finalizar
+          </button>
+          <button class="ctrl-btn draw" id="btn-draw" onclick="drawBall()" disabled>
+            <span class="icon">🎲</span>Balota
+          </button>
+          <button class="ctrl-btn reset" id="btn-reset" onclick="confirmReset()">
+            <span class="icon">🔄</span>Reiniciar
+          </button>
+        </div>
+        <!-- Auto mode -->
+        <div style="margin-top:10px;">
+          <button class="ctrl-btn auto" id="btn-auto" onclick="toggleAuto()" disabled style="width:100%;">
+            <span class="icon">⚡</span><span id="auto-label">Modo Automático</span>
+          </button>
+          <div class="speed-row">
+            <span>Velocidad:</span>
+            <select id="sel-speed" onchange="updateSpeed()">
+              <option value="2000">2 segundos</option>
+              <option value="3000" selected>3 segundos</option>
+              <option value="5000">5 segundos</option>
+              <option value="8000">8 segundos</option>
+              <option value="10000">10 segundos</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- New Round -->
+      <div class="panel">
+        <div class="panel-title">🔁 Nueva Ronda</div>
+        <p style="font-size:12px;color:var(--gray);margin-bottom:10px;">Limpia balotas y jugadores. El acumulado se mantiene si no fue ganado.</p>
+        <button class="btn btn-purple" style="width:100%" onclick="newRound()">🆕 Nueva Ronda</button>
+      </div>
+
+      <!-- History tab -->
+      <div class="panel" style="flex:1;">
+        <div class="panel-title">📋 Historial</div>
+        <div id="history-list" style="font-size:12px;">
+          <p style="color:var(--gray);">Sin partidas registradas.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTER: Board -->
+    <div class="panel" style="overflow-y:auto;">
+      <div class="panel-title">🎱 Tablero Maestro</div>
+      <div class="board-wrap">
+        <!-- Current ball -->
+        <div class="current-ball-wrap">
+          <div id="current-ball-display" class="current-ball empty">–</div>
+          <div class="ball-counter">BOLA: <span id="ball-count">0</span> / 75</div>
+          <div class="recent-balls" id="recent-balls-display"></div>
+        </div>
+        <!-- Column headers -->
+        <div class="board-header">
+          <div class="col-label col-B">B</div>
+          <div class="col-label col-I">I</div>
+          <div class="col-label col-N">N</div>
+          <div class="col-label col-G">G</div>
+          <div class="col-label col-O">O</div>
+        </div>
+        <!-- 75-ball grid (B=1-15, I=16-30, N=31-45, G=46-60, O=61-75 — arranged in rows by line) -->
+        <div class="board-grid" id="board-grid"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Lines -->
+    <div class="panel" style="overflow-y:auto;">
+      <div class="panel-title">👥 Las 15 Líneas</div>
+      <div id="lines-admin"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ PUBLIC ═══════════════════ -->
+<div id="view-public" class="view">
+  <div class="topbar">
+    <div class="topbar-logo">🎱 BOLSILLO LLENO</div>
+    <div class="topbar-info">
+      <div class="info-chip">Ronda <span id="p-round">1</span></div>
+      <div id="p-state-badge" class="state-badge state-idle">Inactivo</div>
+    </div>
+    <button class="btn-back" onclick="goTo('home')">← Inicio</button>
+  </div>
+  <div class="content">
+    <!-- LEFT: Prizes + Info -->
+    <div style="display:flex;flex-direction:column;gap:12px;overflow-y:auto;">
+      <div class="prize-card">
+        <div class="prize-label">Premio Principal</div>
+        <div class="prize-value" id="p-prize">$0</div>
+      </div>
+      <div class="prize-card accum">
+        <div class="prize-label">🤑 Acumulado</div>
+        <div class="prize-value" id="p-accum">$0</div>
+      </div>
+      <div class="prize-card" style="flex:1;">
+        <div class="prize-label">Valor Línea</div>
+        <div class="prize-value" id="p-price">$0</div>
+      </div>
+
+      <!-- Current ball (public) -->
+      <div class="current-ball-wrap" style="background:transparent;border-color:rgba(255,215,0,0.2);">
+        <div id="p-current-ball" class="current-ball empty">–</div>
+        <div class="ball-counter">BOLA: <span id="p-ball-count">0</span> / 75</div>
+        <div class="recent-balls" id="p-recent-balls"></div>
+      </div>
+    </div>
+
+    <!-- CENTER: Board public -->
+    <div class="panel" style="overflow-y:auto;">
+      <div class="panel-title">🎱 Tablero en Vivo</div>
+      <div class="board-wrap">
+        <div class="board-header">
+          <div class="col-label col-B">B</div>
+          <div class="col-label col-I">I</div>
+          <div class="col-label col-N">N</div>
+          <div class="col-label col-G">G</div>
+          <div class="col-label col-O">O</div>
+        </div>
+        <div class="board-grid" id="p-board-grid"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Public lines -->
+    <div class="panel" style="overflow-y:auto;">
+      <div class="panel-title">👥 Jugadores</div>
+      <div class="pub-lines" id="p-lines-display"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ LINE MODAL ═══════════════════ -->
+<div class="modal-overlay" id="line-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('line-modal')">✕</button>
+    <div class="modal-title">✏️ LÍNEA <span id="modal-line-num">1</span></div>
+    <input type="hidden" id="modal-line-idx"/>
+    <div class="form-group" style="margin-bottom:10px;">
+      <label>Nombre del cliente</label>
+      <input id="modal-name" type="text" placeholder="Ej: María García"/>
+    </div>
+    <div class="form-group" style="margin-bottom:10px;">
+      <label>Teléfono (opcional)</label>
+      <input id="modal-phone" type="tel" placeholder="+57 300 000 0000"/>
+    </div>
+    <div class="form-group" style="margin-bottom:10px;">
+      <label>Observaciones</label>
+      <input id="modal-notes" type="text" placeholder="Notas adicionales…"/>
+    </div>
+    <div class="form-group" style="margin-bottom:16px;">
+      <label>Estado del pago</label>
+      <div class="radio-group">
+        <label class="free-l">
+          <input type="radio" name="pay-status" value="free"/> ⬜ Libre
+        </label>
+        <label class="pending-l">
+          <input type="radio" name="pay-status" value="pending"/> ❌ Pendiente
+        </label>
+        <label class="paid-l">
+          <input type="radio" name="pay-status" value="paid"/> ✅ Pagó
+        </label>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-gold" onclick="saveLine()" style="flex:1">💾 Guardar</button>
+      <button class="btn btn-red btn-sm" onclick="deleteLine()">🗑️ Borrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ FIREBASE CONFIG MODAL ═══════════════════ -->
+<div class="modal-overlay" id="firebase-modal">
+  <div class="modal" style="max-width:520px;">
+    <button class="modal-close" onclick="closeModal('firebase-modal')">✕</button>
+    <div class="modal-title">🔥 CONFIGURAR FIREBASE</div>
+    <p style="font-size:12px;color:var(--gray);margin-bottom:12px;">Pega aquí tu objeto firebaseConfig de la consola de Firebase:</p>
+    <textarea id="firebase-config-input" style="
+      width:100%;height:180px;background:var(--bg3);border:1px solid var(--border);
+      color:var(--white);padding:10px;border-radius:8px;font-size:11px;font-family:monospace;resize:vertical;
+    " placeholder='{
+  "apiKey": "...",
+  "authDomain": "...",
+  "databaseURL": "https://...",
+  "projectId": "...",
+  "storageBucket": "...",
+  "messagingSenderId": "...",
+  "appId": "..."
+}'></textarea>
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="btn btn-gold" onclick="applyFirebaseConfig()" style="flex:1">🔗 Conectar</button>
+      <button class="btn btn-ghost btn-sm" onclick="useOfflineMode()">📴 Modo offline (demo)</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ WINNER OVERLAY ═══════════════════ -->
+<div class="winner-overlay" id="winner-overlay">
+  <div class="confetti-wrap" id="confetti-wrap"></div>
+  <div class="winner-trophy">🏆</div>
+  <div class="winner-title">¡GANADOR!</div>
+  <div id="wo-line-label" style="font-size:14px;color:var(--gray);letter-spacing:2px;">LÍNEA 7</div>
+  <div class="winner-name" id="wo-name">Pablo Castro</div>
+  <div class="winner-detail" id="wo-detail">Ha completado su línea</div>
+  <div class="winner-prize" id="wo-prize">$20.000</div>
+  <button class="btn btn-gold" style="margin-top:16px;font-size:16px;padding:14px 32px;" onclick="openRoulette()">
+    🎡 GIRAR LA RULETA DEL ACUMULADO
+  </button>
+</div>
+
+<!-- ═══════════════════ ROULETTE OVERLAY ═══════════════════ -->
+<div class="roulette-overlay" id="roulette-overlay">
+  <div class="roulette-title">🎡 RULETA DEL ACUMULADO</div>
+  <div style="position:relative;">
+    <div class="roulette-pointer">▼</div>
+    <div class="roulette-wheel" id="roulette-wheel">
+      <div class="roulette-center" id="roulette-number">?</div>
+    </div>
+  </div>
+  <div class="roulette-result" id="roulette-result">Girando…</div>
+  <button class="btn btn-gold" id="roulette-spin-btn" onclick="spinRoulette()" style="font-size:16px;padding:14px 32px;">
+    🎲 GIRAR
+  </button>
+  <button class="btn btn-ghost btn-sm" id="roulette-close-btn" style="display:none" onclick="closeRoulette()">
+    Cerrar y continuar
+  </button>
+</div>
+
+<!-- ═══════════════════ TOAST ═══════════════════ -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   BINGO LINEAL — Application Logic
+   Board: 75 balls arranged as 15 rows × 5 cols
+   Row i (1-indexed) = Line i
+   Ball at row i, col j = i + (j-1)*15
+   e.g. Line 1: 1,16,31,46,61
+        Line 15: 15,30,45,60,75
+═══════════════════════════════════════════════ */
+
+// ─── Game State ──────────────────────────────
+let state = {
+  round: 1,
+  price: '$5.000',
+  prize: '$50.000',
+  accum: '$100.000',
+  status: 'idle',       // idle | active | paused | finished
+  balls: [],            // drawn balls in order
+  lines: Array.from({length:15}, (_,i) => ({
+    name: '', phone: '', notes: '', status: 'free'
+  })),
+  winner: null,         // { lineIdx, name, prize }
+  accumWon: false,
+  history: [],
+};
+
+// ─── Auto mode ──────────────────────────────
+let autoInterval = null;
+let autoActive   = false;
+let remainingBalls = [];   // shuffled pool
+
+// ─── Firebase ───────────────────────────────
+let db = null;
+let offlineMode = false;
+let firebaseRef = null;
+const FB_PATH = 'bolsillo-lleno-bingo';
+
+// ─── Sounds (Web Audio) ─────────────────────
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+function getAudio(){
+  if(!audioCtx) audioCtx = new AudioCtx();
+  return audioCtx;
+}
+function playBeep(freq=440, dur=0.15, type='sine'){
+  try{
+    const ac = getAudio();
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.connect(gain); gain.connect(ac.destination);
+    osc.type = type; osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.3, ac.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+dur);
+    osc.start(); osc.stop(ac.currentTime+dur);
+  }catch(e){}
+}
+function playBallSound(){
+  playBeep(880,0.05,'sine');
+  setTimeout(()=>playBeep(1100,0.1,'triangle'),60);
+}
+function playWinnerSound(){
+  [523,659,784,1047].forEach((f,i)=>setTimeout(()=>playBeep(f,0.3,'square'),i*120));
+}
+
+// ─── Router ─────────────────────────────────
+function goTo(view){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+view).classList.add('active');
+  if(view==='admin'||view==='public') renderAll();
+}
+
+// ─── Auth ────────────────────────────────────
+let authReady = false;
+let currentUser = null;
+
+function goToAdmin(){
+  if(!db){
+    showToast('Configura Firebase primero','error');
+    openFirebaseConfig();
+    return;
+  }
+  if(currentUser){
+    goTo('admin');
+  } else {
+    goTo('login');
+  }
+}
+function doLogin(){
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  if(!firebase.apps.length || !firebase.auth){
+    errEl.textContent = 'Configura Firebase primero.';
+    errEl.style.display = 'block';
+    return;
+  }
+  firebase.auth().signInWithEmailAndPassword(email, pass)
+    .then(cred=>{
+      currentUser = cred.user;
+      showToast('Bienvenido, '+(cred.user.email||'admin'),'success');
+      goTo('admin');
+    })
+    .catch(err=>{
+      errEl.textContent = traduceAuthError(err.code);
+      errEl.style.display = 'block';
+    });
+}
+function traduceAuthError(code){
+  const map = {
+    'auth/invalid-email':'Correo inválido.',
+    'auth/user-not-found':'Usuario no encontrado.',
+    'auth/wrong-password':'Contraseña incorrecta.',
+    'auth/invalid-credential':'Credenciales incorrectas.',
+    'auth/too-many-requests':'Demasiados intentos. Intenta más tarde.',
+  };
+  return map[code] || ('Error al iniciar sesión ('+code+')');
+}
+function doLogout(){
+  if(firebase.apps.length && firebase.auth){
+    firebase.auth().signOut().then(()=>{
+      currentUser = null;
+      goTo('home');
+    });
+  } else {
+    currentUser = null;
+    goTo('home');
+  }
+}
+function watchAuthState(){
+  if(!firebase.apps.length) return;
+  firebase.auth().onAuthStateChanged(user=>{
+    currentUser = user;
+  });
+}
+
+// ─── Firebase Setup ─────────────────────────
+function openFirebaseConfig(){
+  const saved = localStorage.getItem('bl-firebase-config');
+  if(saved) document.getElementById('firebase-config-input').value = saved;
+  openModal('firebase-modal');
+}
+function applyFirebaseConfig(){
+  let raw = document.getElementById('firebase-config-input').value.trim();
+  try{
+    const cfg = JSON.parse(raw);
+    if(!cfg.databaseURL) throw new Error('Falta databaseURL');
+    localStorage.setItem('bl-firebase-config', raw);
+    initFirebase(cfg);
+    closeModal('firebase-modal');
+    showToast('Firebase conectado ✓','success');
+  }catch(e){
+    showToast('Config inválida: '+e.message,'error');
+  }
+}
+function useOfflineMode(){
+  offlineMode = true;
+  db = null;
+  closeModal('firebase-modal');
+  document.getElementById('firebase-status').textContent = '📴 Modo offline (demo) – sin sincronización en tiempo real';
+  showToast('Modo demo activo','success');
+}
+function initFirebase(cfg){
+  try{
+    // If already initialized, reuse
+    if(firebase.apps.length){
+      firebase.app().delete().then(()=>doInitFirebase(cfg));
+    } else {
+      doInitFirebase(cfg);
+    }
+  }catch(e){ showToast('Error Firebase: '+e.message,'error'); }
+}
+function doInitFirebase(cfg){
+  try{
+    firebase.initializeApp(cfg);
+    db = firebase.database();
+    firebaseRef = db.ref(FB_PATH);
+    // Listen for remote changes
+    firebaseRef.on('value', snap=>{
+      const data = snap.val();
+      if(data){
+        state = {...state, ...data};
+        if(!data.lines) state.lines = Array.from({length:15},()=>({name:'',phone:'',notes:'',status:'free'}));
+        if(!data.balls) state.balls = [];
+        if(!data.history) state.history = [];
+        renderAll();
+        checkWinnerDisplay();
+      }
+    });
+    document.getElementById('firebase-status').textContent = '🟢 Firebase conectado';
+    showToast('Firebase listo ✓','success');
+    watchAuthState();
+  }catch(e){ showToast('Error al inicializar: '+e.message,'error'); }
+}
+function saveToFirebase(){
+  if(offlineMode || !db) { renderAll(); return; }
+  firebaseRef.set(state).catch(e=>showToast('Error guardando: '+e.message,'error'));
+}
+
+// ─── State Init ─────────────────────────────
+function tryLoadSaved(){
+  const saved = localStorage.getItem('bl-state');
+  if(saved){
+    try{
+      const p = JSON.parse(saved);
+      state = {...state, ...p};
+      if(!state.lines||state.lines.length!==15)
+        state.lines = Array.from({length:15},()=>({name:'',phone:'',notes:'',status:'free'}));
+    }catch(e){}
+  }
+  // Try saved firebase config
+  const fbCfg = localStorage.getItem('bl-firebase-config');
+  if(fbCfg){
+    try{ initFirebase(JSON.parse(fbCfg)); }catch(e){}
+  } else {
+    document.getElementById('firebase-status').textContent =
+      '⚠️ Sin Firebase configurado – pulsa "Configurar Firebase" o usa modo demo.';
+  }
+}
+
+function saveLocal(){
+  localStorage.setItem('bl-state', JSON.stringify(state));
+}
+
+// ─── Ball Logic ─────────────────────────────
+// Line i (0-indexed): balls are [i+1, i+16, i+31, i+46, i+61]
+function getBallsForLine(lineIdx){
+  const i = lineIdx; // 0-based
+  return [i+1, i+16, i+31, i+46, i+61];
+}
+
+function drawBall(){
+  if(state.status !== 'active') return;
+  if(state.balls.length >= 75){ showToast('Ya se cantaron las 75 balotas','error'); return; }
+
+  // Build pool of remaining balls
+  if(remainingBalls.length === 0){
+    const all = Array.from({length:75},(_,i)=>i+1);
+    const drawn = new Set(state.balls);
+    remainingBalls = all.filter(b=>!drawn.has(b));
+    // Shuffle
+    for(let i=remainingBalls.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [remainingBalls[i],remainingBalls[j]]=[remainingBalls[j],remainingBalls[i]];
+    }
+  }
+
+  const ball = remainingBalls.pop();
+  state.balls = [...state.balls, ball];
+  saveToFirebase();
+  saveLocal();
+  playBallSound();
+  renderAll();
+  checkWinner();
+}
+
+function shuffleRemaining(){
+  const all = Array.from({length:75},(_,i)=>i+1);
+  const drawn = new Set(state.balls);
+  remainingBalls = all.filter(b=>!drawn.has(b));
+  for(let i=remainingBalls.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [remainingBalls[i],remainingBalls[j]]=[remainingBalls[j],remainingBalls[i]];
+  }
+}
+
+// ─── Winner Detection ───────────────────────
+function checkWinner(){
+  const calledSet = new Set(state.balls);
+  for(let i=0;i<15;i++){
+    const lineBalls = getBallsForLine(i);
+    if(lineBalls.every(b=>calledSet.has(b))){
+      // Check we haven't already announced this winner
+      if(state.winner && state.winner.lineIdx === i) continue;
+      if(state.status === 'finished') continue;
+      // WINNER!
+      pauseAutoMode();
+      state.winner = {
+        lineIdx: i,
+        name: state.lines[i].name || `Línea ${i+1}`,
+        prize: state.prize
+      };
+      state.status = 'finished';
+      saveToFirebase();
+      saveLocal();
+      renderAll();
+      saveHistory();
+      showWinner(state.winner);
+      playWinnerSound();
+      return;
+    }
+  }
+}
+function checkWinnerDisplay(){
+  // Called after remote update; show winner if state says finished + winner
+  if(state.winner && state.status === 'finished'){
+    // Winner overlay might not be open on this client
+  }
+}
+
+// ─── Auto Mode ──────────────────────────────
+function toggleAuto(){
+  if(!autoActive){
+    startAutoMode();
+  } else {
+    pauseAutoMode();
+  }
+}
+function startAutoMode(){
+  if(state.status !== 'active') return;
+  shuffleRemaining();
+  autoActive = true;
+  const speed = parseInt(document.getElementById('sel-speed').value) || 3000;
+  autoInterval = setInterval(()=>{
+    if(state.status !== 'active'){ pauseAutoMode(); return; }
+    if(state.balls.length >= 75){ pauseAutoMode(); return; }
+    drawBall();
+  }, speed);
+  document.getElementById('btn-auto').classList.add('active');
+  document.getElementById('auto-label').textContent = '⛔ Detener Auto';
+}
+function pauseAutoMode(){
+  autoActive = false;
+  clearInterval(autoInterval);
+  autoInterval = null;
+  const btn = document.getElementById('btn-auto');
+  if(btn){ btn.classList.remove('active'); }
+  const lbl = document.getElementById('auto-label');
+  if(lbl) lbl.textContent = 'Modo Automático';
+}
+function updateSpeed(){
+  if(autoActive){ pauseAutoMode(); startAutoMode(); }
+}
+
+// ─── Game Controls ───────────────────────────
+function startGame(){
+  state.status = 'active';
+  shuffleRemaining();
+  saveToFirebase(); saveLocal();
+  renderAll();
+  showToast('¡Juego iniciado!','success');
+}
+function pauseGame(){
+  pauseAutoMode();
+  state.status = 'paused';
+  saveToFirebase(); saveLocal();
+  renderAll();
+}
+function resumeGame(){
+  state.status = 'active';
+  saveToFirebase(); saveLocal();
+  renderAll();
+}
+function stopGame(){
+  pauseAutoMode();
+  state.status = 'finished';
+  saveToFirebase(); saveLocal();
+  renderAll();
+  showToast('Juego finalizado','error');
+}
+function confirmReset(){
+  if(!confirm('¿Reiniciar el tablero? Se borrarán las balotas cantadas.')) return;
+  resetBoard();
+}
+function resetBoard(){
+  pauseAutoMode();
+  state.balls = [];
+  state.winner = null;
+  state.status = 'idle';
+  remainingBalls = [];
+  saveToFirebase(); saveLocal();
+  renderAll();
+  showToast('Tablero reiniciado','success');
+}
+function newRound(){
+  pauseAutoMode();
+  const accumWon = state.accumWon;
+  state.balls = [];
+  state.winner = null;
+  state.status = 'idle';
+  state.lines = Array.from({length:15},()=>({name:'',phone:'',notes:'',status:'free'}));
+  state.round = (parseInt(state.round)||1) + 1;
+  if(accumWon) state.accum = '$0';
+  state.accumWon = false;
+  remainingBalls = [];
+  document.getElementById('inp-round').value = state.round;
+  saveToFirebase(); saveLocal();
+  renderAll();
+  showToast(`Nueva Ronda ${state.round} iniciada`,'success');
+}
+function saveRoundInfo(){
+  state.round   = parseInt(document.getElementById('inp-round').value)||1;
+  state.price   = document.getElementById('inp-price').value;
+  state.prize   = document.getElementById('inp-prize').value;
+  state.accum   = document.getElementById('inp-accum').value;
+  saveToFirebase(); saveLocal();
+  renderAll();
+  showToast('Información guardada','success');
+}
+
+// ─── History ────────────────────────────────
+function saveHistory(){
+  const now = new Date();
+  const entry = {
+    date: now.toLocaleDateString('es-CO'),
+    time: now.toLocaleTimeString('es-CO'),
+    round: state.round,
+    winner: state.winner ? state.winner.name : '—',
+    line: state.winner ? `Línea ${state.winner.lineIdx+1}` : '—',
+    prize: state.prize,
+    balls: state.balls.length,
+  };
+  state.history = [entry, ...(state.history||[])].slice(0,50);
+  saveToFirebase(); saveLocal();
+}
+
+// ─── Lines CRUD ─────────────────────────────
+function openLineModal(idx){
+  const l = state.lines[idx];
+  document.getElementById('modal-line-idx').value = idx;
+  document.getElementById('modal-line-num').textContent = idx+1;
+  document.getElementById('modal-name').value = l.name||'';
+  document.getElementById('modal-phone').value = l.phone||'';
+  document.getElementById('modal-notes').value = l.notes||'';
+  const radios = document.querySelectorAll('input[name=pay-status]');
+  radios.forEach(r=>r.checked = r.value===(l.status||'free'));
+  openModal('line-modal');
+}
+function saveLine(){
+  const idx = parseInt(document.getElementById('modal-line-idx').value);
+  const status = document.querySelector('input[name=pay-status]:checked')?.value || 'free';
+  state.lines[idx] = {
+    name: document.getElementById('modal-name').value.trim(),
+    phone: document.getElementById('modal-phone').value.trim(),
+    notes: document.getElementById('modal-notes').value.trim(),
+    status,
+  };
+  saveToFirebase(); saveLocal();
+  renderAll();
+  closeModal('line-modal');
+  showToast(`Línea ${idx+1} actualizada`,'success');
+}
+function deleteLine(){
+  const idx = parseInt(document.getElementById('modal-line-idx').value);
+  state.lines[idx] = {name:'',phone:'',notes:'',status:'free'};
+  saveToFirebase(); saveLocal();
+  renderAll();
+  closeModal('line-modal');
+  showToast(`Línea ${idx+1} liberada`,'success');
+}
+
+// ─── Render ──────────────────────────────────
+function renderAll(){
+  renderInfoBars();
+  renderBoard('board-grid');
+  renderBoard('p-board-grid');
+  renderCurrentBall();
+  renderLines();
+  renderPubLines();
+  renderHistory();
+  syncInputs();
+  updateButtons();
+}
+
+function syncInputs(){
+  const inp = v=>{ try{return document.getElementById(v);}catch(e){return null;} };
+  if(inp('inp-round')) inp('inp-round').value = state.round;
+  if(inp('inp-price')) inp('inp-price').value = state.price;
+  if(inp('inp-prize')) inp('inp-prize').value = state.prize;
+  if(inp('inp-accum')) inp('inp-accum').value = state.accum;
+}
+
+function renderInfoBars(){
+  const s = state;
+  // Admin
+  const ar = document.getElementById('a-round');
+  if(ar) ar.textContent = s.round;
+  const ab = document.getElementById('a-state-badge');
+  if(ab){ ab.className='state-badge'; ab.className+=' '+stateClass(s.status); ab.textContent=stateLabel(s.status); }
+  // Public
+  const pr = document.getElementById('p-round');
+  if(pr) pr.textContent = s.round;
+  const pb = document.getElementById('p-state-badge');
+  if(pb){ pb.className='state-badge'; pb.className+=' '+stateClass(s.status); pb.textContent=stateLabel(s.status); }
+  const pp = document.getElementById('p-prize');
+  if(pp) pp.textContent = s.prize||'$0';
+  const pa = document.getElementById('p-accum');
+  if(pa) pa.textContent = s.accum||'$0';
+  const ppr = document.getElementById('p-price');
+  if(ppr) ppr.textContent = s.price||'$0';
+}
+function stateClass(st){
+  return {idle:'state-idle',active:'state-active',paused:'state-paused',finished:'state-finished'}[st]||'state-idle';
+}
+function stateLabel(st){
+  return {idle:'Inactivo',active:'🟢 En Juego',paused:'⏸ Pausado',finished:'🏁 Finalizado'}[st]||st;
+}
+
+function renderBoard(gridId){
+  const grid = document.getElementById(gridId);
+  if(!grid) return;
+  const calledSet = new Set(state.balls);
+  const winnerLine = state.winner ? state.winner.lineIdx : -1;
+
+  // Build 15 rows × 5 cols
+  // Ball at row r (0-based), col c (0-based) = r+1 + c*15
+  const cells = [];
+  for(let r=0;r<15;r++){
+    for(let c=0;c<5;c++){
+      const num = r+1 + c*15;
+      const called = calledSet.has(num);
+      const winner = (winnerLine === r) && called;
+      const cls = winner ? 'ball-cell winner-line' : called ? 'ball-cell called' : 'ball-cell';
+      cells.push(`<div class="${cls}">${num}</div>`);
+    }
+  }
+  grid.innerHTML = cells.join('');
+}
+
+function renderCurrentBall(){
+  const calledBalls = state.balls;
+  const current = calledBalls.length > 0 ? calledBalls[calledBalls.length-1] : null;
+  const count = calledBalls.length;
+  const recent = calledBalls.slice(-5,-1).reverse();
+
+  // Admin
+  const ad = document.getElementById('current-ball-display');
+  if(ad){
+    if(current){ ad.className='current-ball'; ad.textContent=current; }
+    else{ ad.className='current-ball empty'; ad.textContent='–'; }
+  }
+  const ac = document.getElementById('ball-count');
+  if(ac) ac.textContent = count;
+  const ar = document.getElementById('recent-balls-display');
+  if(ar) ar.innerHTML = recent.map(b=>`<div class="recent-ball">${b}</div>`).join('');
+
+  // Public
+  const pd = document.getElementById('p-current-ball');
+  if(pd){
+    if(current){ pd.className='current-ball'; pd.textContent=current; }
+    else{ pd.className='current-ball empty'; pd.textContent='–'; }
+  }
+  const pc = document.getElementById('p-ball-count');
+  if(pc) pc.textContent = count;
+  const pr = document.getElementById('p-recent-balls');
+  if(pr) pr.innerHTML = recent.map(b=>`<div class="recent-ball">${b}</div>`).join('');
+}
+
+function renderLines(){
+  const el = document.getElementById('lines-admin');
+  if(!el) return;
+  const calledSet = new Set(state.balls);
+  const winnerLine = state.winner ? state.winner.lineIdx : -1;
+  el.innerHTML = state.lines.map((l,i)=>{
+    const balls = getBallsForLine(i);
+    const hits = balls.filter(b=>calledSet.has(b)).length;
+    const statusCls = l.status==='paid'?'paid':l.status==='pending'?'pending':'free';
+    const winCls = winnerLine===i ? ' winner' : '';
+    const statusLabel = l.status==='paid'?'<span class="line-status status-paid">✅ Pagó</span>':
+      l.status==='pending'?'<span class="line-status status-pending">❌ Pendiente</span>':
+      '<span class="line-status status-free">⬜ Libre</span>';
+    return `<div class="line-item ${statusCls}${winCls}" onclick="openLineModal(${i})">
+      <div class="line-num">${i+1}</div>
+      <div class="line-info">
+        <div class="line-name">${l.name||`Línea ${i+1}`}</div>
+        <div class="line-balls">${balls.join(' · ')} | Hits: ${hits}/5</div>
+      </div>
+      ${statusLabel}
+    </div>`;
+  }).join('');
+}
+
+function renderPubLines(){
+  const el = document.getElementById('p-lines-display');
+  if(!el) return;
+  const calledSet = new Set(state.balls);
+  const winnerLine = state.winner ? state.winner.lineIdx : -1;
+  el.innerHTML = state.lines.map((l,i)=>{
+    const balls = getBallsForLine(i);
+    const hits = balls.filter(b=>calledSet.has(b)).length;
+    const winCls = winnerLine===i ? ' winner' : '';
+    const dots = balls.map((b,di)=>{
+      const hit = calledSet.has(b);
+      const winDot = hit && winnerLine===i;
+      return `<div class="prog-dot ${hit?'hit':''}${winDot?' win':''}"></div>`;
+    }).join('');
+    return `<div class="pub-line${winCls}">
+      <div class="pub-line-num">${i+1}</div>
+      <div class="pub-line-info">
+        <div class="pub-line-name">${l.name || `Línea ${i+1}`}</div>
+        <div class="pub-line-balls" style="font-size:10px;color:var(--gray);">${balls.join('·')}</div>
+      </div>
+      <div class="pub-line-progress">${dots}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderHistory(){
+  const el = document.getElementById('history-list');
+  if(!el) return;
+  if(!state.history||state.history.length===0){
+    el.innerHTML='<p style="color:var(--gray);font-size:12px;">Sin partidas registradas.</p>';
+    return;
+  }
+  const rows = state.history.map(h=>`
+    <tr>
+      <td>${h.round}</td>
+      <td>${h.date} ${h.time}</td>
+      <td>${h.winner}</td>
+      <td>${h.line}</td>
+      <td>${h.prize}</td>
+    </tr>
+  `).join('');
+  el.innerHTML = `<table class="history-table">
+    <tr><th>#</th><th>Fecha</th><th>Ganador</th><th>Línea</th><th>Premio</th></tr>
+    ${rows}
+  </table>`;
+}
+
+function updateButtons(){
+  const s = state.status;
+  const setBtn = (id, disabled)=>{ const b=document.getElementById(id); if(b) b.disabled=disabled; };
+  const show = (id, show)=>{ const b=document.getElementById(id); if(b) b.style.display=show?'':'none'; };
+
+  setBtn('btn-start',  s==='active'||s==='paused'||s==='finished');
+  setBtn('btn-pause',  s!=='active');
+  setBtn('btn-stop',   s==='idle'||s==='finished');
+  setBtn('btn-draw',   s!=='active');
+  setBtn('btn-auto',   s!=='active');
+
+  show('btn-pause', s!=='paused');
+  show('btn-resume', s==='paused');
+  setBtn('btn-resume', s!=='paused');
+}
+
+// ─── Winner UI ──────────────────────────────
+function showWinner(w){
+  document.getElementById('wo-line-label').textContent = `LÍNEA ${w.lineIdx+1}`;
+  document.getElementById('wo-name').textContent = w.name;
+  document.getElementById('wo-detail').textContent = `Ha completado su línea completa`;
+  document.getElementById('wo-prize').textContent = w.prize || state.prize;
+  document.getElementById('winner-overlay').classList.add('open');
+  spawnConfetti();
+}
+function spawnConfetti(){
+  const wrap = document.getElementById('confetti-wrap');
+  wrap.innerHTML = '';
+  const colors = ['#FFD700','#C0392B','#27AE60','#8A2BE2','#FFFFFF','#FFA500'];
+  for(let i=0;i<80;i++){
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    el.style.cssText = `
+      left:${Math.random()*100}%;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      animation-duration:${2+Math.random()*3}s;
+      animation-delay:${Math.random()*2}s;
+      width:${6+Math.random()*8}px;
+      height:${6+Math.random()*8}px;
+      border-radius:${Math.random()>.5?'50%':'2px'};
+    `;
+    wrap.appendChild(el);
+  }
+}
+
+// ─── Roulette ────────────────────────────────
+let rouletteSpun = false;
+function openRoulette(){
+  document.getElementById('winner-overlay').classList.remove('open');
+  rouletteSpun = false;
+  document.getElementById('roulette-number').textContent = '?';
+  document.getElementById('roulette-result').textContent = 'Pulsa GIRAR para descubrir si ganaste el acumulado';
+  document.getElementById('roulette-result').className = 'roulette-result';
+  document.getElementById('roulette-spin-btn').style.display = '';
+  document.getElementById('roulette-close-btn').style.display = 'none';
+  document.getElementById('roulette-wheel').style.transform = 'rotate(0deg)';
+  document.getElementById('roulette-overlay').classList.add('open');
+}
+function spinRoulette(){
+  if(rouletteSpun) return;
+  rouletteSpun = true;
+  document.getElementById('roulette-spin-btn').disabled = true;
+
+  const result = Math.floor(Math.random()*15)+1; // 1–15
+  const degPerSlice = 360/15;
+  const targetAngle = 360*5 + (15-result)*degPerSlice + degPerSlice/2;
+
+  const wheel = document.getElementById('roulette-wheel');
+  wheel.style.transition = 'transform 4s cubic-bezier(.17,.67,.12,1)';
+  wheel.style.transform = `rotate(${targetAngle}deg)`;
+
+  playBeep(300,0.1,'sawtooth');
+
+  setTimeout(()=>{
+    document.getElementById('roulette-number').textContent = result;
+    const winnerLine = state.winner ? state.winner.lineIdx+1 : -1;
+    const won = result === winnerLine;
+    const resEl = document.getElementById('roulette-result');
+    if(won){
+      resEl.className = 'roulette-result won';
+      resEl.textContent = `🎉 ¡LA LÍNEA ${result} GANÓ EL ACUMULADO! Premio: ${state.accum}`;
+      state.accumWon = true;
+      playWinnerSound();
+      spawnConfetti();
+    } else {
+      resEl.className = 'roulette-result';
+      resEl.textContent = `La ruleta cayó en la línea ${result}. El acumulado de ${state.accum} continúa para la siguiente ronda.`;
+      playBeep(220,0.3,'sine');
+    }
+    saveToFirebase(); saveLocal();
+    document.getElementById('roulette-spin-btn').style.display = 'none';
+    document.getElementById('roulette-close-btn').style.display = '';
+  }, 4200);
+}
+function closeRoulette(){
+  document.getElementById('roulette-overlay').classList.remove('open');
+}
+
+// ─── Modals ──────────────────────────────────
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+// ─── Toast ───────────────────────────────────
+let toastTimer = null;
+function showToast(msg, type=''){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type?' '+type:'');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ t.classList.remove('show'); }, 3000);
+}
+
+// ─── Stars Background ────────────────────────
+function createStars(){
+  const el = document.getElementById('stars-bg');
+  if(!el) return;
+  let html = '';
+  for(let i=0;i<120;i++){
+    const x=Math.random()*100, y=Math.random()*100;
+    const s=Math.random()*2+0.5;
+    const op=Math.random()*0.7+0.3;
+    const delay=Math.random()*4;
+    html+=`<div style="position:absolute;left:${x}%;top:${y}%;width:${s}px;height:${s}px;background:#fff;border-radius:50%;opacity:${op};animation:twinkle ${2+delay}s ease-in-out infinite alternate;animation-delay:${delay}s;"></div>`;
+  }
+  el.innerHTML = html;
+}
+
+// ─── Boot ────────────────────────────────────
+document.addEventListener('DOMContentLoaded', ()=>{
+  createStars();
+  tryLoadSaved();
+  renderAll();
+
+  // Close modals on overlay click
+  document.querySelectorAll('.modal-overlay').forEach(m=>{
+    m.addEventListener('click', e=>{ if(e.target===m) m.classList.remove('open'); });
+  });
+});
+</script>
+
+<style>
+/* Extra: twinkle star animation */
+@keyframes twinkle{
+  from{opacity:.2;}
+  to{opacity:.9;}
+}
+</style>
+</body>
+</html>
