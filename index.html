@@ -64,6 +64,10 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
   color:var(--gold);text-shadow:0 0 40px rgba(255,215,0,0.5);
   letter-spacing:4px;text-align:center;line-height:1;
 }
+.home-logo-img{
+  width:clamp(180px,32vw,320px);height:auto;
+  filter:drop-shadow(0 0 40px rgba(255,215,0,0.45));
+}
 .home-sub{color:var(--gray);font-size:14px;letter-spacing:3px;text-transform:uppercase;margin:8px 0 40px;}
 .home-buttons{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;}
 .btn-home{
@@ -84,6 +88,7 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
   position:sticky;top:0;z-index:100;flex-shrink:0;
 }
 .topbar-logo{font-family:var(--ff-num);font-size:22px;color:var(--gold);letter-spacing:2px;}
+.topbar-logo-img{height:42px;width:auto;display:block;}
 .topbar-info{display:flex;gap:20px;align-items:center;}
 .info-chip{
   background:var(--bg3);border:1px solid var(--border);
@@ -355,50 +360,6 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
 }
 
 /* ═══════════════════════════════════════
-   ROULETTE
-═══════════════════════════════════════ */
-.roulette-overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,0.95);
-  display:none;align-items:center;justify-content:center;z-index:3000;
-  flex-direction:column;gap:20px;text-align:center;padding:20px;
-}
-.roulette-overlay.open{display:flex;animation:fadeIn .3s;}
-.roulette-title{font-family:var(--ff-num);font-size:clamp(28px,5vw,50px);color:var(--gold);letter-spacing:3px;}
-.reel-frame{
-  width:clamp(150px,40vw,220px);height:clamp(150px,40vw,220px);
-  border-radius:20px;border:6px solid var(--gold);
-  background:var(--bg2);position:relative;overflow:hidden;
-  box-shadow:0 0 50px rgba(255,215,0,0.4);
-}
-.reel-frame::before,.reel-frame::after{
-  content:'';position:absolute;left:0;right:0;height:38%;
-  pointer-events:none;z-index:2;
-}
-.reel-frame::before{top:0;background:linear-gradient(rgba(13,7,32,0.95),rgba(13,7,32,0));}
-.reel-frame::after{bottom:0;background:linear-gradient(rgba(13,7,32,0),rgba(13,7,32,0.95));}
-.reel-marker{
-  position:absolute;top:50%;left:0;right:0;height:3px;
-  background:var(--gold);transform:translateY(-50%);z-index:3;
-  box-shadow:0 0 10px var(--gold);
-}
-.reel-marker::before,.reel-marker::after{
-  content:'▶';position:absolute;top:50%;transform:translateY(-50%);
-  color:var(--gold);font-size:18px;
-}
-.reel-marker::before{left:-2px;}
-.reel-marker::after{right:-2px;transform:translateY(-50%) scaleX(-1);}
-.reel-strip{display:flex;flex-direction:column;will-change:transform;}
-.reel-item{
-  width:100%;height:clamp(150px,40vw,220px);flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;
-  font-family:var(--ff-num);font-size:clamp(56px,14vw,84px);color:#fff;
-  text-shadow:0 2px 8px rgba(0,0,0,0.7);
-}
-.reel-item.idle{color:var(--gold);font-size:clamp(40px,10vw,56px);}
-.roulette-result{font-size:18px;color:var(--white);max-width:400px;}
-.roulette-result.won{color:var(--gold);font-family:var(--ff-num);font-size:32px;animation:bounce .7s ease infinite;}
-
-/* ═══════════════════════════════════════
    PUBLIC VIEW
 ═══════════════════════════════════════ */
 #view-public{background:radial-gradient(ellipse at top, #1e1445 0%, #0d0720 60%);}
@@ -501,6 +462,8 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
   .topbar{flex-wrap:wrap;row-gap:6px;padding:8px 12px;}
   .topbar-info{display:flex;order:3;width:100%;justify-content:center;gap:10px;}
   .topbar-logo{font-size:17px;}
+  .topbar-logo-img{height:30px;}
+  .home-logo-img{width:clamp(140px,55vw,220px);}
   .form-grid{grid-template-columns:1fr;}
   .ctrl-grid{grid-template-columns:repeat(3,1fr);}
   .home-buttons{flex-direction:column;align-items:stretch;}
@@ -533,7 +496,7 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
     <div id="stars-bg"></div>
   </div>
   <div style="position:relative;z-index:1;text-align:center;padding:40px 20px;">
-    <div class="home-logo">🎱 BOLSILLO<br>LLENO</div>
+    <img src="https://i.imgur.com/H1sQS4p.png" alt="Bolsillo Lleno x5" class="home-logo-img"/>
     <div class="home-sub">Sistema de Bingo Lineal en Vivo</div>
     <div class="home-buttons">
       <button class="btn-home admin" onclick="goToAdmin()">⚙️ Panel Admin</button>
@@ -568,7 +531,7 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
 <!-- ═══════════════════ ADMIN ═══════════════════ -->
 <div id="view-admin" class="view">
   <div class="topbar">
-    <div class="topbar-logo">🎱 BOLSILLO LLENO</div>
+    <img src="https://i.imgur.com/H1sQS4p.png" alt="Bolsillo Lleno x5" class="topbar-logo-img"/>
     <div class="topbar-info">
       <div class="info-chip">Ronda <span id="a-round">1</span></div>
       <div id="a-state-badge" class="state-badge state-idle">Inactivo</div>
@@ -581,7 +544,6 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
       <div class="tab-row">
         <button class="tab-btn active" id="admtab-btn-juego" onclick="switchAdminTab('juego')">🎮 Juego</button>
         <button class="tab-btn" id="admtab-btn-historial" onclick="switchAdminTab('historial')">📋 Historial</button>
-        <button class="tab-btn" id="admtab-btn-config" onclick="switchAdminTab('config')">⚙️ Configuración</button>
       </div>
 
       <div class="tab-content active" id="admtab-juego">
@@ -672,32 +634,6 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
         </div>
       </div><!-- /admtab-historial -->
 
-      <div class="tab-content" id="admtab-config">
-        <div class="panel">
-          <div class="panel-title">🎯 Probabilidad del Acumulado</div>
-          <p style="font-size:12px;color:var(--gray);margin-bottom:12px;">
-            Controla qué tan fácil es que la ruleta caiga en la línea ganadora y se lleve el acumulado.
-          </p>
-          <div class="radio-group" style="flex-direction:column;gap:8px;">
-            <label class="paid-l" style="justify-content:flex-start;">
-              <input type="radio" name="jackpot-mode" value="normal" onchange="setJackpotMode('normal')"/>
-              🎲 Probabilidad normal (1/15 aleatorio)
-            </label>
-            <label class="pending-l" style="justify-content:flex-start;">
-              <input type="radio" name="jackpot-mode" value="low" onchange="setJackpotMode('low')"/>
-              🔒 Probabilidad baja (acumulado difícil)
-            </label>
-          </div>
-          <div class="form-group" id="low-chance-wrap" style="margin-top:12px;display:none;">
-            <label>% de probabilidad que caiga el acumulado</label>
-            <input id="inp-low-chance" type="number" min="0" max="100" step="1" value="5" oninput="setLowChance(this.value)"/>
-          </div>
-          <div style="margin-top:14px;padding:10px;background:var(--bg3);border-radius:8px;font-size:12px;color:var(--gray);">
-            Modo actual: <span id="config-mode-label" style="color:var(--gold);font-weight:700;">Normal</span>
-          </div>
-        </div>
-      </div><!-- /admtab-config -->
-
     </div>
 
     <!-- CENTER: Board -->
@@ -734,7 +670,7 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
 <!-- ═══════════════════ PUBLIC ═══════════════════ -->
 <div id="view-public" class="view">
   <div class="topbar">
-    <div class="topbar-logo">🎱 BOLSILLO LLENO</div>
+    <img src="https://i.imgur.com/H1sQS4p.png" alt="Bolsillo Lleno x5" class="topbar-logo-img"/>
     <div class="topbar-info">
       <div class="info-chip">Ronda <span id="p-round">1</span></div>
       <div id="p-state-badge" class="state-badge state-idle">Inactivo</div>
@@ -872,25 +808,6 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
   <div class="winner-name" id="wo-name">Pablo Castro</div>
   <div class="winner-detail" id="wo-detail">Ha completado su línea</div>
   <div class="winner-prize" id="wo-prize">$20.000</div>
-  <button class="btn btn-gold" id="winner-open-roulette-btn" style="margin-top:16px;font-size:16px;padding:14px 32px;" onclick="openRoulette()">
-    🎡 GIRAR LA RULETA DEL ACUMULADO
-  </button>
-</div>
-
-<!-- ═══════════════════ ROULETTE OVERLAY ═══════════════════ -->
-<div class="roulette-overlay" id="roulette-overlay">
-  <div class="roulette-title">🎡 RULETA DEL ACUMULADO</div>
-  <div class="reel-frame" id="roulette-reel-frame" onclick="spinRoulette()" style="cursor:pointer;">
-    <div class="reel-marker"></div>
-    <div class="reel-strip" id="roulette-reel"><div class="reel-item idle">?</div></div>
-  </div>
-  <div class="roulette-result" id="roulette-result">Girando…</div>
-  <button class="btn btn-gold" id="roulette-spin-btn" onclick="spinRoulette()" style="font-size:16px;padding:14px 32px;">
-    🎲 TOCA LA RULETA O PULSA AQUÍ PARA GIRAR
-  </button>
-  <button class="btn btn-ghost btn-sm" id="roulette-close-btn" style="display:none" onclick="closeRoulette()">
-    Cerrar y continuar
-  </button>
 </div>
 
 <!-- ═══════════════════ TOAST ═══════════════════ -->
@@ -921,8 +838,6 @@ let state = {
   accumWon: false,
   history: [],
   roundsArchive: [],     // [{id, round, date, time, lines:[...]}] snapshot of participants per past round
-  roulette: { active:false, spinning:false, result:null, won:false, ts:0 },
-  config: { jackpotMode:'normal', lowChance:5 },
 };
 
 // ─── Auto mode ──────────────────────────────
@@ -930,7 +845,6 @@ let autoInterval = null;
 let autoActive   = false;
 let remainingBalls = [];   // shuffled pool
 let lastWinnerTs = 0;
-let lastRouletteTs = -1;
 
 // ─── Firebase (preconfigurado) ───────────────
 const FIREBASE_CONFIG = {
@@ -982,7 +896,6 @@ function goTo(view){
   document.getElementById('view-'+view).classList.add('active');
   if(view==='admin'||view==='public'){
     renderAll();
-    renderRoulette();
     if(state.winner) showWinner(state.winner);
   }
 }
@@ -1116,8 +1029,6 @@ function doInitFirebase(cfg){
         if(!data.balls) state.balls = [];
         if(!data.history) state.history = [];
         if(!data.roundsArchive) state.roundsArchive = [];
-        if(!data.roulette) state.roulette = { active:false, spinning:false, result:null, won:false, ts:0 };
-        if(!data.config) state.config = { jackpotMode:'normal', lowChance:5 };
         renderAll();
         checkWinnerDisplay();
       }
@@ -1141,9 +1052,7 @@ function tryLoadSaved(){
       state = {...state, ...p};
       if(!state.lines||state.lines.length!==15)
         state.lines = Array.from({length:15},()=>({name:'',phone:'',notes:'',status:'free'}));
-      if(!state.roulette) state.roulette = { active:false, spinning:false, result:null, won:false, ts:0 };
       if(!state.roundsArchive) state.roundsArchive = [];
-      if(!state.config) state.config = { jackpotMode:'normal', lowChance:5 };
     }catch(e){}
   }
   // Auto-connect to preconfigured Firebase project
@@ -1224,7 +1133,7 @@ function checkWinner(){
 }
 function checkWinnerDisplay(){
   // Called after every state update (local or remote). Shows winner overlay
-  // and roulette overlay on EVERY connected client (admin + público en sala).
+  // on EVERY connected client (admin + público en sala).
   if(state.winner && state.winner.ts && state.winner.ts !== lastWinnerTs){
     lastWinnerTs = state.winner.ts;
     showWinner(state.winner);
@@ -1234,7 +1143,6 @@ function checkWinnerDisplay(){
     const wo = document.getElementById('winner-overlay');
     if(wo) wo.classList.remove('open');
   }
-  renderRoulette();
 }
 
 // ─── Auto Mode ──────────────────────────────
@@ -1306,11 +1214,20 @@ function resetBoard(){
   state.balls = [];
   state.winner = null;
   state.status = 'idle';
-  state.roulette = { active:false, spinning:false, result:null, won:false, ts:0 };
   remainingBalls = [];
   saveToFirebase(); saveLocal();
   renderAll();
   showToast('Tablero reiniciado','success');
+}
+function deleteArchivedRound(id){
+  const entry = state.roundsArchive.find(a=>a.id===id);
+  if(!entry) return;
+  if(!confirm(`¿Eliminar del historial la Ronda ${entry.round} (${entry.date})? Esta acción no se puede deshacer.`)) return;
+  state.roundsArchive = (state.roundsArchive||[]).filter(a=>a.id!==id);
+  state.history = (state.history||[]).filter(h=>String(h.round)!==String(entry.round));
+  saveToFirebase(); saveLocal();
+  renderHistory();
+  showToast('Ronda eliminada del historial','success');
 }
 function openArchiveRound(id){
   const entry = state.roundsArchive.find(a=>a.id===id);
@@ -1346,7 +1263,6 @@ function newRound(){
   state.balls = [];
   state.winner = null;
   state.status = 'idle';
-  state.roulette = { active:false, spinning:false, result:null, won:false, ts:0 };
   state.lines = Array.from({length:15},()=>({name:'',phone:'',notes:'',status:'free'}));
   state.round = (parseInt(state.round)||1) + 1;
   if(accumWon) state.accum = '$0';
@@ -1446,30 +1362,6 @@ function switchAdminTab(tab){
   document.getElementById('admtab-'+tab).classList.add('active');
 }
 
-// ─── Jackpot Probability Config ─────────────
-function setJackpotMode(mode){
-  state.config = state.config || {jackpotMode:'normal', lowChance:5};
-  state.config.jackpotMode = mode;
-  saveToFirebase(); saveLocal();
-  showToast(mode==='low' ? 'Probabilidad baja activada' : 'Probabilidad normal activada','success');
-}
-function setLowChance(val){
-  state.config = state.config || {jackpotMode:'normal', lowChance:5};
-  state.config.lowChance = val;
-  saveToFirebase(); saveLocal();
-}
-function syncConfigUI(){
-  const cfg = state.config || {jackpotMode:'normal', lowChance:5};
-  const radios = document.querySelectorAll('input[name=jackpot-mode]');
-  radios.forEach(r=>r.checked = r.value === (cfg.jackpotMode||'normal'));
-  const wrap = document.getElementById('low-chance-wrap');
-  if(wrap) wrap.style.display = cfg.jackpotMode==='low' ? '' : 'none';
-  const inp = document.getElementById('inp-low-chance');
-  if(inp && document.activeElement!==inp) inp.value = cfg.lowChance!=null ? cfg.lowChance : 5;
-  const label = document.getElementById('config-mode-label');
-  if(label) label.textContent = cfg.jackpotMode==='low' ? `Probabilidad baja (${cfg.lowChance||5}%)` : 'Normal';
-}
-
 // ─── Render ──────────────────────────────────
 function renderAll(){
   renderInfoBars();
@@ -1480,9 +1372,7 @@ function renderAll(){
   renderPubLines();
   renderHistory();
   syncInputs();
-  syncConfigUI();
   updateButtons();
-  renderRoulette();
 }
 
 function syncInputs(){
@@ -1635,7 +1525,10 @@ function renderHistory(){
         <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px 12px;margin-bottom:6px;">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
             <span style="font-size:12px;font-weight:600;">Ronda ${a.round} <span style="color:var(--gray);font-weight:400;">(${a.date} ${a.time||''})</span></span>
-            <button class="btn btn-ghost btn-sm" onclick="openArchiveRound(${a.id})">👥 Ver/Editar</button>
+            <span style="display:flex;gap:6px;">
+              <button class="btn btn-ghost btn-sm" onclick="openArchiveRound(${a.id})">👥 Ver/Editar</button>
+              <button class="btn btn-ghost btn-sm" style="color:var(--red,#ff5c5c);" onclick="deleteArchivedRound(${a.id})">🗑️ Eliminar</button>
+            </span>
           </div>
           <div style="margin-top:6px;font-size:11px;color:var(--gray);display:flex;flex-wrap:wrap;gap:10px;">
             <span>🧍 Jugadores: ${playerCount}/15</span>
@@ -1688,9 +1581,6 @@ function showWinner(w){
   document.getElementById('wo-detail').textContent = `Ha completado su línea completa`;
   document.getElementById('wo-prize').textContent = w.prize || state.prize;
   document.getElementById('winner-overlay').classList.add('open');
-  const adminCtx = isAdminContext();
-  const rouletteBtn = document.getElementById('winner-open-roulette-btn');
-  if(rouletteBtn) rouletteBtn.style.display = adminCtx ? '' : 'none';
   spawnConfetti();
 }
 function isAdminContext(){
@@ -1725,153 +1615,6 @@ function spawnConfetti(){
       border-radius:${Math.random()>.5?'50%':'2px'};
     `;
     wrap.appendChild(el);
-  }
-}
-
-// ─── Roulette (vertical reel / slot-machine style) ──
-const REEL_REPEATS = 8; // how many full 1..15 cycles to scroll through before landing
-
-// Builds the vertical strip of numbers and returns the index (within the
-// strip) where the final result lands, so the caller can compute the
-// translateY needed to bring that item under the marker.
-function buildReelStrip(result){
-  const strip = document.getElementById('roulette-reel');
-  if(!strip) return 0;
-  const items = [];
-  for(let c=0;c<REEL_REPEATS;c++){
-    for(let n=1;n<=15;n++) items.push(n);
-  }
-  const targetIdx = items.length - 15 + (result - 1); // lands in the final cycle
-  strip.innerHTML = items.map(n=>`<div class="reel-item">${n}</div>`).join('');
-  return targetIdx;
-}
-
-function resetReelIdle(){
-  const strip = document.getElementById('roulette-reel');
-  if(!strip) return;
-  strip.style.transition = 'none';
-  strip.style.transform = 'translateY(0)';
-  strip.innerHTML = '<div class="reel-item idle">?</div>';
-}
-
-function pickRouletteResult(winnerLine){
-  const cfg = state.config || {jackpotMode:'normal', lowChance:5};
-  if(cfg.jackpotMode === 'low' && winnerLine>=1 && winnerLine<=15){
-    const chance = Math.max(0, Math.min(100, cfg.lowChance!=null && cfg.lowChance!=='' ? parseFloat(cfg.lowChance) : 5));
-    if(Math.random()*100 < chance) return winnerLine;
-    let r;
-    do{ r = Math.floor(Math.random()*15)+1; }while(r===winnerLine);
-    return r;
-  }
-  return Math.floor(Math.random()*15)+1;
-}
-
-function openRoulette(){
-  if(!isAdminContext()){ warnNotAdmin(); return; }
-  document.getElementById('winner-overlay').classList.remove('open');
-  state.roulette = { active:true, spinning:false, result:null, won:false, ts:Date.now() };
-  renderRoulette(); // actualiza ESTA pantalla de inmediato, sin esperar a Firebase
-  saveToFirebase(); saveLocal();
-}
-
-function spinRoulette(){
-  if(!isAdminContext()){ warnNotAdmin(); return; }
-  if(!state.roulette || !state.roulette.active || state.roulette.result!==null) return;
-  const winnerLine = state.winner ? state.winner.lineIdx+1 : -1;
-  const result = pickRouletteResult(winnerLine);
-  const won = result === winnerLine;
-  if(won) state.accumWon = true;
-  state.roulette = { active:true, spinning:true, result, won, ts:Date.now() };
-  renderRoulette(); // arranca la animación YA en este dispositivo, no esperes el round-trip
-  saveToFirebase(); saveLocal();
-  // Salvavidas: si Firebase nunca confirma el guardado, igual avisamos
-  // localmente en vez de dejar la ruleta trabada para siempre.
-  setTimeout(()=>{
-    if(db && !offlineMode){
-      firebaseRef.once('value').then(snap=>{
-        const d = snap.val();
-        if(!d || !d.roulette || d.roulette.ts !== state.roulette.ts){
-          showToast('No se pudo confirmar el giro con el servidor. Verifica tu conexión.','error');
-        }
-      }).catch(()=>{
-        showToast('No se pudo confirmar el giro con el servidor. Verifica tu conexión.','error');
-      });
-    }
-  }, 6000);
-}
-
-function closeRoulette(){
-  if(!isAdminContext()){ warnNotAdmin(); return; }
-  state.roulette = { active:false, spinning:false, result:null, won:false, ts:Date.now() };
-  state.winner = null;
-  renderRoulette();
-  saveToFirebase(); saveLocal();
-}
-
-function renderRoulette(){
-  const r = state.roulette;
-  const overlay = document.getElementById('roulette-overlay');
-  if(!overlay) return;
-  if(!r || !r.active){
-    overlay.classList.remove('open');
-    return;
-  }
-  const frame = document.getElementById('roulette-reel-frame');
-  const resultEl = document.getElementById('roulette-result');
-  const spinBtn = document.getElementById('roulette-spin-btn');
-  const closeBtn = document.getElementById('roulette-close-btn');
-  const adminCtx = isAdminContext();
-
-  document.getElementById('winner-overlay').classList.remove('open');
-  overlay.classList.add('open');
-
-  spinBtn.style.display = (adminCtx && r.result===null) ? '' : 'none';
-  closeBtn.style.display = (adminCtx && r.result!==null) ? '' : 'none';
-
-  if(r.ts !== lastRouletteTs){
-    lastRouletteTs = r.ts;
-    if(r.spinning && r.result!==null){
-      resultEl.className = 'roulette-result';
-      resultEl.textContent = 'Girando…';
-      const strip = document.getElementById('roulette-reel');
-      const targetIdx = buildReelStrip(r.result);
-      strip.style.transition = 'none';
-      strip.style.transform = 'translateY(0)';
-      void strip.offsetWidth;
-      // Doble requestAnimationFrame: en WebView de Android un solo rAF no
-      // garantiza que el navegador pinte el estado "transition:none" antes
-      // de aplicar la transición real, por lo que el carrete nunca animaba.
-      requestAnimationFrame(()=>{
-        requestAnimationFrame(()=>{
-          const itemH = frame.offsetHeight;
-          strip.style.transition = 'transform 4s cubic-bezier(.17,.67,.12,1)';
-          strip.style.transform = `translateY(-${targetIdx*itemH}px)`;
-        });
-      });
-      playBeep(300,0.1,'sawtooth');
-      setTimeout(()=>{
-        if(r.won){
-          resultEl.className = 'roulette-result won';
-          resultEl.textContent = `🎉 ¡LA LÍNEA ${r.result} GANÓ EL ACUMULADO! Premio: ${state.accum}`;
-          playWinnerSound();
-          spawnConfetti();
-        } else {
-          resultEl.className = 'roulette-result';
-          resultEl.textContent = `La ruleta cayó en la línea ${r.result}. El acumulado SIGUE CRECIENDO y ya va en ${state.accum} 💰 ¿Quién se lo llevará en la próxima ronda? No te quedes por fuera... ¡Asegura tu cartón ahora!`;
-          playBeep(220,0.3,'sine');
-        }
-        const sb = document.getElementById('roulette-spin-btn');
-        const cb = document.getElementById('roulette-close-btn');
-        if(sb) sb.style.display = 'none';
-        if(cb) cb.style.display = isAdminContext() ? '' : 'none';
-      }, 4200);
-    } else if(!r.spinning && r.result===null){
-      resetReelIdle();
-      resultEl.className = 'roulette-result';
-      resultEl.textContent = adminCtx
-        ? 'Pulsa GIRAR para descubrir si ganaste el acumulado'
-        : '🎡 Esperando que el administrador gire la ruleta del acumulado…';
-    }
   }
 }
 
@@ -1913,20 +1656,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // Close modals on overlay click
   document.querySelectorAll('.modal-overlay').forEach(m=>{
     m.addEventListener('click', e=>{ if(e.target===m) m.classList.remove('open'); });
-  });
-
-  window.addEventListener('resize', ()=>{
-    // Si el carrete está mostrando un resultado fijo (no animando), lo
-    // realineamos al nuevo tamaño del frame para que el marcador siga
-    // apuntando al número correcto tras un cambio de orientación/tamaño.
-    const r = state.roulette;
-    const strip = document.getElementById('roulette-reel');
-    const frame = document.getElementById('roulette-reel-frame');
-    if(r && r.active && r.result!==null && strip && frame){
-      const targetIdx = buildReelStrip(r.result);
-      strip.style.transition = 'none';
-      strip.style.transform = `translateY(-${targetIdx*frame.offsetHeight}px)`;
-    }
   });
 });
 </script>
