@@ -624,9 +624,12 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
 
       <div class="tab-content" id="admtab-historial">
         <div class="panel">
-          <div class="panel-title">📋 Historial de Rondas</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;">
+            <div class="panel-title" style="margin-bottom:0;">📋 Historial de Rondas</div>
+            <button class="btn btn-ghost btn-sm" style="color:var(--red,#ff5c5c);white-space:nowrap;" onclick="clearAllHistory()">🧹 Limpiar todo</button>
+          </div>
           <p style="font-size:12px;color:var(--gray);margin-bottom:10px;">
-            Consulta cada ronda jugada: jugadores registrados, línea y ganador, premio entregado y fecha. Toca "Ver/Editar" para gestionar los jugadores de una ronda archivada.
+            Toca una ronda para ver sus jugadores, el ganador y el premio entregado, o para eliminarla del historial.
           </p>
           <div id="history-list" style="font-size:12px;">
             <p style="color:var(--gray);">Sin partidas registradas.</p>
@@ -768,9 +771,13 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
 <div class="modal-overlay" id="archive-modal">
   <div class="modal" style="max-width:480px;">
     <button class="modal-close" onclick="closeModal('archive-modal')">✕</button>
-    <div class="modal-title">👥 Participantes Ronda <span id="archive-round-num">1</span></div>
-    <p style="font-size:11px;color:var(--gray);margin-bottom:10px;">Toca una línea para editarla.</p>
-    <div id="archive-lines-list" style="display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow-y:auto;"></div>
+    <div class="modal-title">📋 Ronda <span id="archive-round-num">1</span></div>
+    <input type="hidden" id="modal-archive-current-id" value=""/>
+    <input type="hidden" id="modal-archive-current-round" value=""/>
+    <div id="archive-winner-info" style="display:none;background:rgba(212,175,55,0.08);border:1px solid rgba(212,175,55,0.25);border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:10px;line-height:1.6;"></div>
+    <p style="font-size:11px;color:var(--gray);margin-bottom:10px;">👥 Toca una línea para editarla.</p>
+    <div id="archive-lines-list" style="display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow-y:auto;margin-bottom:14px;"></div>
+    <button class="btn btn-red btn-sm" style="width:100%" onclick="deleteRoundFromHistory()">🗑️ Eliminar esta ronda del historial</button>
   </div>
 </div>
 
@@ -1219,28 +1226,77 @@ function resetBoard(){
   renderAll();
   showToast('Tablero reiniciado','success');
 }
-function deleteArchivedRound(id){
-  const entry = state.roundsArchive.find(a=>a.id===id);
-  if(!entry) return;
-  if(!confirm(`¿Eliminar del historial la Ronda ${entry.round} (${entry.date})? Esta acción no se puede deshacer.`)) return;
-  state.roundsArchive = (state.roundsArchive||[]).filter(a=>a.id!==id);
-  state.history = (state.history||[]).filter(h=>String(h.round)!==String(entry.round));
+function getHistoryEntries(){
+  const archive = state.roundsArchive||[];
+  const hist = state.history||[];
+  const usedRounds = new Set();
+  const entries = archive.map(a=>{
+    usedRounds.add(String(a.round));
+    const h = hist.find(x=>String(x.round)===String(a.round));
+    return { archiveId:a.id, round:a.round, date:a.date, time:a.time, lines:a.lines, hist:h||null };
+  });
+  hist.forEach(h=>{
+    if(!usedRounds.has(String(h.round))){
+      entries.push({ archiveId:null, round:h.round, date:h.date, time:h.time, lines:null, hist:h });
+    }
+  });
+  entries.sort((a,b)=> (parseInt(b.round)||0) - (parseInt(a.round)||0));
+  return entries;
+}
+function openRoundDetail(archiveIdRaw, round){
+  const archiveId = archiveIdRaw ? parseInt(archiveIdRaw) : null;
+  const entry = archiveId ? (state.roundsArchive||[]).find(a=>a.id===archiveId) : null;
+  const h = (state.history||[]).find(x=>String(x.round)===String(round));
+  document.getElementById('archive-round-num').textContent = round;
+  document.getElementById('modal-archive-current-id').value = archiveId || '';
+  document.getElementById('modal-archive-current-round').value = round;
+
+  const winnerEl = document.getElementById('archive-winner-info');
+  if(h){
+    winnerEl.innerHTML = `🏆 Ganador: <strong>${h.winner}</strong>${h.line && h.line!=='—' ? ' · '+h.line : ''}<br>💰 Premio: ${h.prize}`;
+    winnerEl.style.display = 'block';
+  } else {
+    winnerEl.innerHTML = '';
+    winnerEl.style.display = 'none';
+  }
+
+  const linesEl = document.getElementById('archive-lines-list');
+  if(entry){
+    const statusIcon = {free:'⬜',pending:'❌',paid:'✅'};
+    linesEl.innerHTML = entry.lines.map((l,i)=>`
+      <div onclick="openLineModal(${i}, ${archiveId})" style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 12px;cursor:pointer;">
+        <span style="font-size:13px;">${statusIcon[l.status||'free']} Línea ${i+1}: ${l.name ? l.name : '<span style="color:var(--gray)">vacía</span>'}</span>
+        <span style="font-size:11px;color:var(--gray);">${l.phone||''}</span>
+      </div>
+    `).join('');
+  } else {
+    linesEl.innerHTML = '<p style="color:var(--gray);font-size:12px;">No hay datos de jugadores guardados para esta ronda.</p>';
+  }
+  openModal('archive-modal');
+}
+function deleteRoundFromHistory(){
+  const archiveIdRaw = document.getElementById('modal-archive-current-id').value;
+  const round = document.getElementById('modal-archive-current-round').value;
+  const archiveId = archiveIdRaw ? parseInt(archiveIdRaw) : null;
+  if(!confirm(`¿Eliminar del historial la Ronda ${round}? Esta acción no se puede deshacer.`)) return;
+  state.roundsArchive = (state.roundsArchive||[]).filter(a=>a.id!==archiveId);
+  state.history = (state.history||[]).filter(h=>String(h.round)!==String(round));
   saveToFirebase(); saveLocal();
+  closeModal('archive-modal');
   renderHistory();
   showToast('Ronda eliminada del historial','success');
 }
-function openArchiveRound(id){
-  const entry = state.roundsArchive.find(a=>a.id===id);
-  if(!entry) return;
-  document.getElementById('archive-round-num').textContent = entry.round;
-  const statusIcon = {free:'⬜',pending:'❌',paid:'✅'};
-  document.getElementById('archive-lines-list').innerHTML = entry.lines.map((l,i)=>`
-    <div onclick="openLineModal(${i}, ${id})" style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 12px;cursor:pointer;">
-      <span style="font-size:13px;">${statusIcon[l.status||'free']} Línea ${i+1}: ${l.name ? l.name : '<span style=\"color:var(--gray)\">vacía</span>'}</span>
-      <span style="font-size:11px;color:var(--gray);">${l.phone||''}</span>
-    </div>
-  `).join('');
-  openModal('archive-modal');
+function clearAllHistory(){
+  if(!(state.roundsArchive||[]).length && !(state.history||[]).length){
+    showToast('El historial ya está vacío','error');
+    return;
+  }
+  if(!confirm('¿Limpiar TODO el historial de rondas? Esta acción no se puede deshacer.')) return;
+  state.roundsArchive = [];
+  state.history = [];
+  saveToFirebase(); saveLocal();
+  renderHistory();
+  showToast('Historial limpiado por completo','success');
 }
 
 function newRound(){
@@ -1511,51 +1567,28 @@ function renderPubLines(){
 function renderHistory(){
   const el = document.getElementById('history-list');
   if(!el) return;
-  const archive = state.roundsArchive||[];
-  const hist = state.history||[];
-  let archiveHtml = '';
-  if(archive.length){
-    archiveHtml = `<div style="margin-bottom:14px;">
-      <p style="font-size:12px;color:var(--gold);margin-bottom:6px;">📋 Rondas jugadas</p>
-      ${archive.map(a=>{
-        const h = hist.find(x=>String(x.round)===String(a.round));
-        const playerCount = (a.lines||[]).filter(l=>l.name && l.name.trim()!=='').length;
-        const winnerLine = h ? `${h.winner!=='—' ? h.winner+' · ' : ''}${h.line}` : 'Sin ganador registrado';
-        return `
-        <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px 12px;margin-bottom:6px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-            <span style="font-size:12px;font-weight:600;">Ronda ${a.round} <span style="color:var(--gray);font-weight:400;">(${a.date} ${a.time||''})</span></span>
-            <span style="display:flex;gap:6px;">
-              <button class="btn btn-ghost btn-sm" onclick="openArchiveRound(${a.id})">👥 Ver/Editar</button>
-              <button class="btn btn-ghost btn-sm" style="color:var(--red,#ff5c5c);" onclick="deleteArchivedRound(${a.id})">🗑️ Eliminar</button>
-            </span>
-          </div>
-          <div style="margin-top:6px;font-size:11px;color:var(--gray);display:flex;flex-wrap:wrap;gap:10px;">
-            <span>🧍 Jugadores: ${playerCount}/15</span>
-            <span>🏆 Ganador: ${winnerLine}</span>
-            ${h ? `<span>💰 Premio: ${h.prize}</span>` : ''}
-          </div>
-        </div>`;
-      }).join('')}
-    </div>`;
-  }
-  if(!hist.length){
-    el.innerHTML = archiveHtml + (archive.length ? '' : '<p style="color:var(--gray);font-size:12px;">Sin partidas registradas.</p>');
+  const entries = getHistoryEntries();
+  if(!entries.length){
+    el.innerHTML = '<p style="color:var(--gray);font-size:12px;">Sin partidas registradas.</p>';
     return;
   }
-  const rows = hist.map(h=>`
-    <tr>
-      <td>${h.round}</td>
-      <td>${h.date} ${h.time}</td>
-      <td>${h.winner}</td>
-      <td>${h.line}</td>
-      <td>${h.prize}</td>
-    </tr>
-  `).join('');
-  el.innerHTML = archiveHtml + `<p style="font-size:12px;color:var(--gold);margin:10px 0 6px;">🏁 Historial de premios entregados</p><table class="history-table">
-    <tr><th>#</th><th>Fecha</th><th>Ganador</th><th>Línea</th><th>Premio</th></tr>
-    ${rows}
-  </table>`;
+  el.innerHTML = entries.map(e=>{
+    const playerCount = e.lines ? e.lines.filter(l=>l.name && l.name.trim()!=='').length : null;
+    const h = e.hist;
+    const winnerTxt = h ? `${h.winner && h.winner!=='—' ? h.winner : 'Sin ganador'}${h.line && h.line!=='—' ? ' · '+h.line : ''}` : 'Sin datos';
+    return `
+    <div class="history-card" onclick="openRoundDetail('${e.archiveId||''}','${e.round}')" style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px 12px;margin-bottom:6px;cursor:pointer;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <span style="font-size:12px;font-weight:600;">Ronda ${e.round} <span style="color:var(--gray);font-weight:400;">(${e.date} ${e.time||''})</span></span>
+        <span style="font-size:11px;color:var(--gold);white-space:nowrap;">Ver detalle ›</span>
+      </div>
+      <div style="margin-top:6px;font-size:11px;color:var(--gray);display:flex;flex-wrap:wrap;gap:10px;">
+        ${playerCount!==null ? `<span>🧍 Jugadores: ${playerCount}/15</span>` : ''}
+        <span>🏆 Ganador: ${winnerTxt}</span>
+        ${h ? `<span>💰 Premio: ${h.prize}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function updateButtons(){
