@@ -392,6 +392,13 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
 }
 .roulette-result{font-size:18px;color:var(--white);max-width:400px;}
 .roulette-result.won{color:var(--gold);font-family:var(--ff-num);font-size:32px;animation:bounce .7s ease infinite;}
+.roulette-numbers{position:absolute;inset:0;pointer-events:none;}
+.roulette-num{
+  position:absolute;top:50%;left:50%;
+  font-family:var(--ff-num);font-size:clamp(13px,2.4vw,18px);
+  color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.8);
+  transform-origin:0 0;
+}
 
 /* ═══════════════════════════════════════
    PUBLIC VIEW
@@ -493,10 +500,29 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
    RESPONSIVIDAD MÓVIL
 ═══════════════════════════════════════ */
 @media(max-width:700px){
-  .topbar-info{display:none;}
+  .topbar{flex-wrap:wrap;row-gap:6px;padding:8px 12px;}
+  .topbar-info{display:flex;order:3;width:100%;justify-content:center;gap:10px;}
+  .topbar-logo{font-size:17px;}
   .form-grid{grid-template-columns:1fr;}
   .ctrl-grid{grid-template-columns:repeat(3,1fr);}
   .home-buttons{flex-direction:column;align-items:stretch;}
+  #view-admin .content,#view-public .content{padding:10px;gap:10px;}
+  .panel{padding:12px;}
+  .board-grid{gap:3px;}
+  .ball-cell{font-size:clamp(10px,3.2vw,15px);}
+  .current-ball{width:clamp(64px,20vw,90px);height:clamp(64px,20vw,90px);font-size:clamp(26px,8vw,42px);}
+  .ctrl-btn{padding:10px 6px;font-size:10px;}
+  .ctrl-btn .icon{font-size:18px;}
+  .modal{padding:18px;}
+  .winner-trophy{font-size:56px;}
+  .roulette-wheel{width:clamp(160px,70vw,260px);height:clamp(160px,70vw,260px);}
+  .history-table{font-size:10px;}
+  .history-table th,.history-table td{padding:5px;}
+  .tab-btn{flex:1;font-size:10px;padding:8px 6px;}
+}
+@media(max-width:420px){
+  .ctrl-grid{grid-template-columns:repeat(2,1fr);}
+  .info-chip{font-size:10px;padding:3px 8px;}
 }
 </style>
 </head>
@@ -549,7 +575,16 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
       <div id="a-state-badge" class="state-badge state-idle">Inactivo</div>
     </div>
     <button class="btn-back" onclick="doLogout()">🚪 Salir</button>
+  </div>
+  <div class="content">
     <div style="display:flex;flex-direction:column;gap:12px;overflow-y:auto;">
+
+      <div class="tab-row">
+        <button class="tab-btn active" id="admtab-btn-juego" onclick="switchAdminTab('juego')">🎮 Juego</button>
+        <button class="tab-btn" id="admtab-btn-config" onclick="switchAdminTab('config')">⚙️ Configuración</button>
+      </div>
+
+      <div class="tab-content active" id="admtab-juego">
 
       <!-- Round Info -->
       <div class="panel">
@@ -630,6 +665,35 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
           <p style="color:var(--gray);">Sin partidas registradas.</p>
         </div>
       </div>
+
+      </div><!-- /admtab-juego -->
+
+      <div class="tab-content" id="admtab-config">
+        <div class="panel">
+          <div class="panel-title">🎯 Probabilidad del Acumulado</div>
+          <p style="font-size:12px;color:var(--gray);margin-bottom:12px;">
+            Controla qué tan fácil es que la ruleta caiga en la línea ganadora y se lleve el acumulado.
+          </p>
+          <div class="radio-group" style="flex-direction:column;gap:8px;">
+            <label class="paid-l" style="justify-content:flex-start;">
+              <input type="radio" name="jackpot-mode" value="normal" onchange="setJackpotMode('normal')"/>
+              🎲 Probabilidad normal (1/15 aleatorio)
+            </label>
+            <label class="pending-l" style="justify-content:flex-start;">
+              <input type="radio" name="jackpot-mode" value="low" onchange="setJackpotMode('low')"/>
+              🔒 Probabilidad baja (acumulado difícil)
+            </label>
+          </div>
+          <div class="form-group" id="low-chance-wrap" style="margin-top:12px;display:none;">
+            <label>% de probabilidad que caiga el acumulado</label>
+            <input id="inp-low-chance" type="number" min="0" max="100" step="1" value="5" oninput="setLowChance(this.value)"/>
+          </div>
+          <div style="margin-top:14px;padding:10px;background:var(--bg3);border-radius:8px;font-size:12px;color:var(--gray);">
+            Modo actual: <span id="config-mode-label" style="color:var(--gold);font-weight:700;">Normal</span>
+          </div>
+        </div>
+      </div><!-- /admtab-config -->
+
     </div>
 
     <!-- CENTER: Board -->
@@ -793,7 +857,7 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
   <div class="winner-name" id="wo-name">Pablo Castro</div>
   <div class="winner-detail" id="wo-detail">Ha completado su línea</div>
   <div class="winner-prize" id="wo-prize">$20.000</div>
-  <button class="btn btn-gold" style="margin-top:16px;font-size:16px;padding:14px 32px;" onclick="openRoulette()">
+  <button class="btn btn-gold" id="winner-open-roulette-btn" style="margin-top:16px;font-size:16px;padding:14px 32px;" onclick="openRoulette()">
     🎡 GIRAR LA RULETA DEL ACUMULADO
   </button>
 </div>
@@ -804,6 +868,7 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
   <div style="position:relative;">
     <div class="roulette-pointer">▼</div>
     <div class="roulette-wheel" id="roulette-wheel">
+      <div class="roulette-numbers" id="roulette-numbers"></div>
       <div class="roulette-center" id="roulette-number">?</div>
     </div>
   </div>
@@ -840,15 +905,19 @@ let state = {
   lines: Array.from({length:15}, (_,i) => ({
     name: '', phone: '', notes: '', status: 'free'
   })),
-  winner: null,         // { lineIdx, name, prize }
+  winner: null,         // { lineIdx, name, prize, ts }
   accumWon: false,
   history: [],
+  roulette: { active:false, spinning:false, result:null, won:false, ts:0 },
+  config: { jackpotMode:'normal', lowChance:5 },
 };
 
 // ─── Auto mode ──────────────────────────────
 let autoInterval = null;
 let autoActive   = false;
 let remainingBalls = [];   // shuffled pool
+let lastWinnerTs = 0;
+let lastRouletteTs = 0;
 
 // ─── Firebase (preconfigurado) ───────────────
 const FIREBASE_CONFIG = {
@@ -898,7 +967,11 @@ function playWinnerSound(){
 function goTo(view){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+view).classList.add('active');
-  if(view==='admin'||view==='public') renderAll();
+  if(view==='admin'||view==='public'){
+    renderAll();
+    renderRoulette();
+    if(state.winner) showWinner(state.winner);
+  }
 }
 
 // ─── Auth ────────────────────────────────────
@@ -1029,6 +1102,8 @@ function doInitFirebase(cfg){
         if(!data.lines) state.lines = Array.from({length:15},()=>({name:'',phone:'',notes:'',status:'free'}));
         if(!data.balls) state.balls = [];
         if(!data.history) state.history = [];
+        if(!data.roulette) state.roulette = { active:false, spinning:false, result:null, won:false, ts:0 };
+        if(!data.config) state.config = { jackpotMode:'normal', lowChance:5 };
         renderAll();
         checkWinnerDisplay();
       }
@@ -1039,7 +1114,7 @@ function doInitFirebase(cfg){
   }catch(e){ showToast('Error al inicializar: '+e.message,'error'); }
 }
 function saveToFirebase(){
-  if(offlineMode || !db) { renderAll(); return; }
+  if(offlineMode || !db) { renderAll(); checkWinnerDisplay(); return; }
   firebaseRef.set(state).catch(e=>showToast('Error guardando: '+e.message,'error'));
 }
 
@@ -1052,6 +1127,8 @@ function tryLoadSaved(){
       state = {...state, ...p};
       if(!state.lines||state.lines.length!==15)
         state.lines = Array.from({length:15},()=>({name:'',phone:'',notes:'',status:'free'}));
+      if(!state.roulette) state.roulette = { active:false, spinning:false, result:null, won:false, ts:0 };
+      if(!state.config) state.config = { jackpotMode:'normal', lowChance:5 };
     }catch(e){}
   }
   // Auto-connect to preconfigured Firebase project
@@ -1118,24 +1195,31 @@ function checkWinner(){
       state.winner = {
         lineIdx: i,
         name: state.lines[i].name || `Línea ${i+1}`,
-        prize: state.prize
+        prize: state.prize,
+        ts: Date.now()
       };
       state.status = 'finished';
       saveToFirebase();
       saveLocal();
       renderAll();
       saveHistory();
-      showWinner(state.winner);
-      playWinnerSound();
       return;
     }
   }
 }
 function checkWinnerDisplay(){
-  // Called after remote update; show winner if state says finished + winner
-  if(state.winner && state.status === 'finished'){
-    // Winner overlay might not be open on this client
+  // Called after every state update (local or remote). Shows winner overlay
+  // and roulette overlay on EVERY connected client (admin + público en sala).
+  if(state.winner && state.winner.ts && state.winner.ts !== lastWinnerTs){
+    lastWinnerTs = state.winner.ts;
+    showWinner(state.winner);
+    playWinnerSound();
   }
+  if(!state.winner){
+    const wo = document.getElementById('winner-overlay');
+    if(wo) wo.classList.remove('open');
+  }
+  renderRoulette();
 }
 
 // ─── Auto Mode ──────────────────────────────
@@ -1207,6 +1291,7 @@ function resetBoard(){
   state.balls = [];
   state.winner = null;
   state.status = 'idle';
+  state.roulette = { active:false, spinning:false, result:null, won:false, ts:0 };
   remainingBalls = [];
   saveToFirebase(); saveLocal();
   renderAll();
@@ -1218,6 +1303,7 @@ function newRound(){
   state.balls = [];
   state.winner = null;
   state.status = 'idle';
+  state.roulette = { active:false, spinning:false, result:null, won:false, ts:0 };
   state.lines = Array.from({length:15},()=>({name:'',phone:'',notes:'',status:'free'}));
   state.round = (parseInt(state.round)||1) + 1;
   if(accumWon) state.accum = '$0';
@@ -1289,6 +1375,38 @@ function deleteLine(){
   showToast(`Línea ${idx+1} liberada`,'success');
 }
 
+// ─── Admin Tabs ──────────────────────────────
+function switchAdminTab(tab){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  document.getElementById('admtab-btn-'+tab).classList.add('active');
+  document.getElementById('admtab-'+tab).classList.add('active');
+}
+
+// ─── Jackpot Probability Config ─────────────
+function setJackpotMode(mode){
+  state.config = state.config || {jackpotMode:'normal', lowChance:5};
+  state.config.jackpotMode = mode;
+  saveToFirebase(); saveLocal();
+  showToast(mode==='low' ? 'Probabilidad baja activada' : 'Probabilidad normal activada','success');
+}
+function setLowChance(val){
+  state.config = state.config || {jackpotMode:'normal', lowChance:5};
+  state.config.lowChance = val;
+  saveToFirebase(); saveLocal();
+}
+function syncConfigUI(){
+  const cfg = state.config || {jackpotMode:'normal', lowChance:5};
+  const radios = document.querySelectorAll('input[name=jackpot-mode]');
+  radios.forEach(r=>r.checked = r.value === (cfg.jackpotMode||'normal'));
+  const wrap = document.getElementById('low-chance-wrap');
+  if(wrap) wrap.style.display = cfg.jackpotMode==='low' ? '' : 'none';
+  const inp = document.getElementById('inp-low-chance');
+  if(inp && document.activeElement!==inp) inp.value = cfg.lowChance!=null ? cfg.lowChance : 5;
+  const label = document.getElementById('config-mode-label');
+  if(label) label.textContent = cfg.jackpotMode==='low' ? `Probabilidad baja (${cfg.lowChance||5}%)` : 'Normal';
+}
+
 // ─── Render ──────────────────────────────────
 function renderAll(){
   renderInfoBars();
@@ -1299,6 +1417,7 @@ function renderAll(){
   renderPubLines();
   renderHistory();
   syncInputs();
+  syncConfigUI();
   updateButtons();
 }
 
@@ -1480,7 +1599,14 @@ function showWinner(w){
   document.getElementById('wo-detail').textContent = `Ha completado su línea completa`;
   document.getElementById('wo-prize').textContent = w.prize || state.prize;
   document.getElementById('winner-overlay').classList.add('open');
+  const adminCtx = isAdminContext();
+  const rouletteBtn = document.getElementById('winner-open-roulette-btn');
+  if(rouletteBtn) rouletteBtn.style.display = adminCtx ? '' : 'none';
   spawnConfetti();
+}
+function isAdminContext(){
+  const v = document.getElementById('view-admin');
+  return !!(v && v.classList.contains('active') && currentUser);
 }
 function spawnConfetti(){
   const wrap = document.getElementById('confetti-wrap');
@@ -1503,56 +1629,126 @@ function spawnConfetti(){
 }
 
 // ─── Roulette ────────────────────────────────
-let rouletteSpun = false;
-function openRoulette(){
-  document.getElementById('winner-overlay').classList.remove('open');
-  rouletteSpun = false;
-  document.getElementById('roulette-number').textContent = '?';
-  document.getElementById('roulette-result').textContent = 'Pulsa GIRAR para descubrir si ganaste el acumulado';
-  document.getElementById('roulette-result').className = 'roulette-result';
-  document.getElementById('roulette-spin-btn').style.display = '';
-  document.getElementById('roulette-close-btn').style.display = 'none';
-  document.getElementById('roulette-wheel').style.transform = 'rotate(0deg)';
-  document.getElementById('roulette-overlay').classList.add('open');
-}
-function spinRoulette(){
-  if(rouletteSpun) return;
-  rouletteSpun = true;
-  document.getElementById('roulette-spin-btn').disabled = true;
-
-  const result = Math.floor(Math.random()*15)+1; // 1–15
-  const degPerSlice = 360/15;
-  const targetAngle = 360*5 + (15-result)*degPerSlice + degPerSlice/2;
-
+// Wedge k (0-indexed, clockwise from top) shows number (15-k).
+function buildRouletteNumbers(){
+  const wrap = document.getElementById('roulette-numbers');
   const wheel = document.getElementById('roulette-wheel');
-  wheel.style.transition = 'transform 4s cubic-bezier(.17,.67,.12,1)';
-  wheel.style.transform = `rotate(${targetAngle}deg)`;
-
-  playBeep(300,0.1,'sawtooth');
-
-  setTimeout(()=>{
-    document.getElementById('roulette-number').textContent = result;
-    const winnerLine = state.winner ? state.winner.lineIdx+1 : -1;
-    const won = result === winnerLine;
-    const resEl = document.getElementById('roulette-result');
-    if(won){
-      resEl.className = 'roulette-result won';
-      resEl.textContent = `🎉 ¡LA LÍNEA ${result} GANÓ EL ACUMULADO! Premio: ${state.accum}`;
-      state.accumWon = true;
-      playWinnerSound();
-      spawnConfetti();
-    } else {
-      resEl.className = 'roulette-result';
-      resEl.textContent = `La ruleta cayó en la línea ${result}. El acumulado de ${state.accum} continúa para la siguiente ronda.`;
-      playBeep(220,0.3,'sine');
-    }
-    saveToFirebase(); saveLocal();
-    document.getElementById('roulette-spin-btn').style.display = 'none';
-    document.getElementById('roulette-close-btn').style.display = '';
-  }, 4200);
+  if(!wrap || !wheel) return;
+  const size = wheel.offsetWidth;
+  if(!size) return;
+  const radius = size * 0.36;
+  const degPerSlice = 360/15;
+  let html = '';
+  for(let k=0;k<15;k++){
+    const num = 15-k;
+    const angle = k*degPerSlice + degPerSlice/2;
+    html += `<div class="roulette-num" style="transform:translate(${size/2}px, ${size/2}px) rotate(${angle}deg) translate(0, -${radius}px) rotate(${-angle}deg) translate(-50%, -50%);">${num}</div>`;
+  }
+  wrap.innerHTML = html;
 }
+
+function pickRouletteResult(winnerLine){
+  const cfg = state.config || {jackpotMode:'normal', lowChance:5};
+  if(cfg.jackpotMode === 'low' && winnerLine>=1 && winnerLine<=15){
+    const chance = Math.max(0, Math.min(100, cfg.lowChance!=null && cfg.lowChance!=='' ? parseFloat(cfg.lowChance) : 5));
+    if(Math.random()*100 < chance) return winnerLine;
+    let r;
+    do{ r = Math.floor(Math.random()*15)+1; }while(r===winnerLine);
+    return r;
+  }
+  return Math.floor(Math.random()*15)+1;
+}
+
+function openRoulette(){
+  if(!isAdminContext()) return;
+  document.getElementById('winner-overlay').classList.remove('open');
+  state.roulette = { active:true, spinning:false, result:null, won:false, ts:Date.now() };
+  saveToFirebase(); saveLocal();
+}
+
+function spinRoulette(){
+  if(!isAdminContext()) return;
+  if(!state.roulette || !state.roulette.active || state.roulette.result!==null) return;
+  const winnerLine = state.winner ? state.winner.lineIdx+1 : -1;
+  const result = pickRouletteResult(winnerLine);
+  const won = result === winnerLine;
+  if(won) state.accumWon = true;
+  state.roulette = { active:true, spinning:true, result, won, ts:Date.now() };
+  saveToFirebase(); saveLocal();
+}
+
 function closeRoulette(){
-  document.getElementById('roulette-overlay').classList.remove('open');
+  if(!isAdminContext()) return;
+  state.roulette = { active:false, spinning:false, result:null, won:false, ts:Date.now() };
+  state.winner = null;
+  saveToFirebase(); saveLocal();
+}
+
+function renderRoulette(){
+  const r = state.roulette;
+  const overlay = document.getElementById('roulette-overlay');
+  if(!overlay) return;
+  if(!r || !r.active){
+    overlay.classList.remove('open');
+    return;
+  }
+  const wheel = document.getElementById('roulette-wheel');
+  const numberEl = document.getElementById('roulette-number');
+  const resultEl = document.getElementById('roulette-result');
+  const spinBtn = document.getElementById('roulette-spin-btn');
+  const closeBtn = document.getElementById('roulette-close-btn');
+  const adminCtx = isAdminContext();
+
+  document.getElementById('winner-overlay').classList.remove('open');
+  overlay.classList.add('open');
+  buildRouletteNumbers();
+
+  spinBtn.style.display = (adminCtx && r.result===null) ? '' : 'none';
+  closeBtn.style.display = (adminCtx && r.result!==null) ? '' : 'none';
+
+  if(r.ts !== lastRouletteTs){
+    lastRouletteTs = r.ts;
+    if(r.spinning && r.result!==null){
+      numberEl.textContent = '?';
+      resultEl.className = 'roulette-result';
+      resultEl.textContent = 'Girando…';
+      wheel.style.transition = 'none';
+      wheel.style.transform = 'rotate(0deg)';
+      void wheel.offsetWidth;
+      const degPerSlice = 360/15;
+      const targetAngle = 360*5 + (15-r.result)*degPerSlice + degPerSlice/2;
+      requestAnimationFrame(()=>{
+        wheel.style.transition = 'transform 4s cubic-bezier(.17,.67,.12,1)';
+        wheel.style.transform = `rotate(${targetAngle}deg)`;
+      });
+      playBeep(300,0.1,'sawtooth');
+      setTimeout(()=>{
+        numberEl.textContent = r.result;
+        if(r.won){
+          resultEl.className = 'roulette-result won';
+          resultEl.textContent = `🎉 ¡LA LÍNEA ${r.result} GANÓ EL ACUMULADO! Premio: ${state.accum}`;
+          playWinnerSound();
+          spawnConfetti();
+        } else {
+          resultEl.className = 'roulette-result';
+          resultEl.textContent = `La ruleta cayó en la línea ${r.result}. El acumulado de ${state.accum} continúa para la siguiente ronda.`;
+          playBeep(220,0.3,'sine');
+        }
+        const sb = document.getElementById('roulette-spin-btn');
+        const cb = document.getElementById('roulette-close-btn');
+        if(sb) sb.style.display = 'none';
+        if(cb) cb.style.display = isAdminContext() ? '' : 'none';
+      }, 4200);
+    } else if(!r.spinning && r.result===null){
+      numberEl.textContent = '?';
+      wheel.style.transition = 'none';
+      wheel.style.transform = 'rotate(0deg)';
+      resultEl.className = 'roulette-result';
+      resultEl.textContent = adminCtx
+        ? 'Pulsa GIRAR para descubrir si ganaste el acumulado'
+        : '🎡 Esperando que el administrador gire la ruleta del acumulado…';
+    }
+  }
 }
 
 // ─── Modals ──────────────────────────────────
@@ -1594,6 +1790,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.querySelectorAll('.modal-overlay').forEach(m=>{
     m.addEventListener('click', e=>{ if(e.target===m) m.classList.remove('open'); });
   });
+
+  window.addEventListener('resize', ()=>{ buildRouletteNumbers(); });
 });
 </script>
 
