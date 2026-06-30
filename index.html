@@ -1482,6 +1482,7 @@ function renderAll(){
   syncInputs();
   syncConfigUI();
   updateButtons();
+  renderRoulette();
 }
 
 function syncInputs(){
@@ -1696,6 +1697,17 @@ function isAdminContext(){
   const v = document.getElementById('view-admin');
   return !!(v && v.classList.contains('active') && currentUser);
 }
+// Avisa por qué se bloqueó una acción de admin, en vez de fallar en silencio.
+function warnNotAdmin(){
+  const v = document.getElementById('view-admin');
+  if(!v || !v.classList.contains('active')){
+    showToast('Esta acción es solo para el panel de administrador.','error');
+  } else if(!currentUser){
+    showToast('Tu sesión de administrador no está lista todavía. Espera un momento e intenta de nuevo.','error');
+  } else {
+    showToast('No se pudo verificar tu sesión de administrador.','error');
+  }
+}
 function spawnConfetti(){
   const wrap = document.getElementById('confetti-wrap');
   wrap.innerHTML = '';
@@ -1755,27 +1767,44 @@ function pickRouletteResult(winnerLine){
 }
 
 function openRoulette(){
-  if(!isAdminContext()) return;
+  if(!isAdminContext()){ warnNotAdmin(); return; }
   document.getElementById('winner-overlay').classList.remove('open');
   state.roulette = { active:true, spinning:false, result:null, won:false, ts:Date.now() };
+  renderRoulette(); // actualiza ESTA pantalla de inmediato, sin esperar a Firebase
   saveToFirebase(); saveLocal();
 }
 
 function spinRoulette(){
-  if(!isAdminContext()) return;
+  if(!isAdminContext()){ warnNotAdmin(); return; }
   if(!state.roulette || !state.roulette.active || state.roulette.result!==null) return;
   const winnerLine = state.winner ? state.winner.lineIdx+1 : -1;
   const result = pickRouletteResult(winnerLine);
   const won = result === winnerLine;
   if(won) state.accumWon = true;
   state.roulette = { active:true, spinning:true, result, won, ts:Date.now() };
+  renderRoulette(); // arranca la animación YA en este dispositivo, no esperes el round-trip
   saveToFirebase(); saveLocal();
+  // Salvavidas: si Firebase nunca confirma el guardado, igual avisamos
+  // localmente en vez de dejar la ruleta trabada para siempre.
+  setTimeout(()=>{
+    if(db && !offlineMode){
+      firebaseRef.once('value').then(snap=>{
+        const d = snap.val();
+        if(!d || !d.roulette || d.roulette.ts !== state.roulette.ts){
+          showToast('No se pudo confirmar el giro con el servidor. Verifica tu conexión.','error');
+        }
+      }).catch(()=>{
+        showToast('No se pudo confirmar el giro con el servidor. Verifica tu conexión.','error');
+      });
+    }
+  }, 6000);
 }
 
 function closeRoulette(){
-  if(!isAdminContext()) return;
+  if(!isAdminContext()){ warnNotAdmin(); return; }
   state.roulette = { active:false, spinning:false, result:null, won:false, ts:Date.now() };
   state.winner = null;
+  renderRoulette();
   saveToFirebase(); saveLocal();
 }
 
