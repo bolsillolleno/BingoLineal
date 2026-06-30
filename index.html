@@ -364,41 +364,39 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
 }
 .roulette-overlay.open{display:flex;animation:fadeIn .3s;}
 .roulette-title{font-family:var(--ff-num);font-size:clamp(28px,5vw,50px);color:var(--gold);letter-spacing:3px;}
-.roulette-wheel{
-  width:clamp(180px,40vw,300px);height:clamp(180px,40vw,300px);
-  border-radius:50%;border:6px solid var(--gold);
-  background:conic-gradient(
-    #8A2BE2 0deg 24deg, #C0392B 24deg 48deg, #27AE60 48deg 72deg,
-    #2980b9 72deg 96deg, #e67e22 96deg 120deg,
-    #8A2BE2 120deg 144deg, #C0392B 144deg 168deg, #27AE60 168deg 192deg,
-    #2980b9 192deg 216deg, #e67e22 216deg 240deg,
-    #8A2BE2 240deg 264deg, #C0392B 264deg 288deg, #27AE60 288deg 312deg,
-    #2980b9 312deg 336deg, #e67e22 336deg 360deg
-  );
-  position:relative;display:flex;align-items:center;justify-content:center;
+.reel-frame{
+  width:clamp(150px,40vw,220px);height:clamp(150px,40vw,220px);
+  border-radius:20px;border:6px solid var(--gold);
+  background:var(--bg2);position:relative;overflow:hidden;
   box-shadow:0 0 50px rgba(255,215,0,0.4);
-  transition:transform 4s cubic-bezier(.17,.67,.12,1);
 }
-.roulette-center{
-  width:50%;height:50%;border-radius:50%;
-  background:var(--bg);border:3px solid var(--gold);
+.reel-frame::before,.reel-frame::after{
+  content:'';position:absolute;left:0;right:0;height:38%;
+  pointer-events:none;z-index:2;
+}
+.reel-frame::before{top:0;background:linear-gradient(rgba(13,7,32,0.95),rgba(13,7,32,0));}
+.reel-frame::after{bottom:0;background:linear-gradient(rgba(13,7,32,0),rgba(13,7,32,0.95));}
+.reel-marker{
+  position:absolute;top:50%;left:0;right:0;height:3px;
+  background:var(--gold);transform:translateY(-50%);z-index:3;
+  box-shadow:0 0 10px var(--gold);
+}
+.reel-marker::before,.reel-marker::after{
+  content:'▶';position:absolute;top:50%;transform:translateY(-50%);
+  color:var(--gold);font-size:18px;
+}
+.reel-marker::before{left:-2px;}
+.reel-marker::after{right:-2px;transform:translateY(-50%) scaleX(-1);}
+.reel-strip{display:flex;flex-direction:column;will-change:transform;}
+.reel-item{
+  width:100%;height:clamp(150px,40vw,220px);flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
-  font-family:var(--ff-num);font-size:40px;color:var(--gold);
-  z-index:1;
+  font-family:var(--ff-num);font-size:clamp(56px,14vw,84px);color:#fff;
+  text-shadow:0 2px 8px rgba(0,0,0,0.7);
 }
-.roulette-pointer{
-  position:absolute;top:-18px;left:50%;transform:translateX(-50%);
-  font-size:30px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));
-}
+.reel-item.idle{color:var(--gold);font-size:clamp(40px,10vw,56px);}
 .roulette-result{font-size:18px;color:var(--white);max-width:400px;}
 .roulette-result.won{color:var(--gold);font-family:var(--ff-num);font-size:32px;animation:bounce .7s ease infinite;}
-.roulette-numbers{position:absolute;inset:0;pointer-events:none;}
-.roulette-num{
-  position:absolute;top:0;left:0;
-  font-family:var(--ff-num);font-size:clamp(13px,2.4vw,18px);
-  color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.8);
-  transform-origin:0 0;
-}
 
 /* ═══════════════════════════════════════
    PUBLIC VIEW
@@ -515,7 +513,8 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
   .ctrl-btn .icon{font-size:18px;}
   .modal{padding:18px;}
   .winner-trophy{font-size:56px;}
-  .roulette-wheel{width:clamp(160px,70vw,260px);height:clamp(160px,70vw,260px);}
+  .reel-frame{width:clamp(130px,65vw,190px);height:clamp(130px,65vw,190px);}
+  .reel-item{height:clamp(130px,65vw,190px);}
   .history-table{font-size:10px;}
   .history-table th,.history-table td{padding:5px;}
   .tab-btn{flex:1;font-size:10px;padding:8px 6px;}
@@ -581,6 +580,7 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
 
       <div class="tab-row">
         <button class="tab-btn active" id="admtab-btn-juego" onclick="switchAdminTab('juego')">🎮 Juego</button>
+        <button class="tab-btn" id="admtab-btn-historial" onclick="switchAdminTab('historial')">📋 Historial</button>
         <button class="tab-btn" id="admtab-btn-config" onclick="switchAdminTab('config')">⚙️ Configuración</button>
       </div>
 
@@ -658,15 +658,19 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
         <button class="btn btn-purple" style="width:100%" onclick="newRound()">🆕 Nueva Ronda</button>
       </div>
 
-      <!-- History tab -->
-      <div class="panel" style="flex:1;">
-        <div class="panel-title">📋 Historial</div>
-        <div id="history-list" style="font-size:12px;">
-          <p style="color:var(--gray);">Sin partidas registradas.</p>
-        </div>
-      </div>
-
       </div><!-- /admtab-juego -->
+
+      <div class="tab-content" id="admtab-historial">
+        <div class="panel">
+          <div class="panel-title">📋 Historial de Rondas</div>
+          <p style="font-size:12px;color:var(--gray);margin-bottom:10px;">
+            Consulta cada ronda jugada: jugadores registrados, línea y ganador, premio entregado y fecha. Toca "Ver/Editar" para gestionar los jugadores de una ronda archivada.
+          </p>
+          <div id="history-list" style="font-size:12px;">
+            <p style="color:var(--gray);">Sin partidas registradas.</p>
+          </div>
+        </div>
+      </div><!-- /admtab-historial -->
 
       <div class="tab-content" id="admtab-config">
         <div class="panel">
@@ -876,12 +880,9 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
 <!-- ═══════════════════ ROULETTE OVERLAY ═══════════════════ -->
 <div class="roulette-overlay" id="roulette-overlay">
   <div class="roulette-title">🎡 RULETA DEL ACUMULADO</div>
-  <div style="position:relative;">
-    <div class="roulette-pointer">▼</div>
-    <div class="roulette-wheel" id="roulette-wheel" onclick="spinRoulette()" style="cursor:pointer;">
-      <div class="roulette-numbers" id="roulette-numbers"></div>
-      <div class="roulette-center" id="roulette-number">?</div>
-    </div>
+  <div class="reel-frame" id="roulette-reel-frame" onclick="spinRoulette()" style="cursor:pointer;">
+    <div class="reel-marker"></div>
+    <div class="reel-strip" id="roulette-reel"><div class="reel-item idle">?</div></div>
   </div>
   <div class="roulette-result" id="roulette-result">Girando…</div>
   <button class="btn btn-gold" id="roulette-spin-btn" onclick="spinRoulette()" style="font-size:16px;padding:14px 32px;">
@@ -1620,23 +1621,35 @@ function renderHistory(){
   const el = document.getElementById('history-list');
   if(!el) return;
   const archive = state.roundsArchive||[];
+  const hist = state.history||[];
   let archiveHtml = '';
   if(archive.length){
     archiveHtml = `<div style="margin-bottom:14px;">
-      <p style="font-size:12px;color:var(--gold);margin-bottom:6px;">📋 Participantes por ronda</p>
-      ${archive.map(a=>`
-        <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 12px;margin-bottom:6px;">
-          <span style="font-size:12px;">Ronda ${a.round} <span style="color:var(--gray);">(${a.date})</span></span>
-          <button class="btn btn-ghost btn-sm" onclick="openArchiveRound(${a.id})">👥 Ver/Editar</button>
-        </div>
-      `).join('')}
+      <p style="font-size:12px;color:var(--gold);margin-bottom:6px;">📋 Rondas jugadas</p>
+      ${archive.map(a=>{
+        const h = hist.find(x=>String(x.round)===String(a.round));
+        const playerCount = (a.lines||[]).filter(l=>l.name && l.name.trim()!=='').length;
+        const winnerLine = h ? `${h.winner!=='—' ? h.winner+' · ' : ''}${h.line}` : 'Sin ganador registrado';
+        return `
+        <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px 12px;margin-bottom:6px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <span style="font-size:12px;font-weight:600;">Ronda ${a.round} <span style="color:var(--gray);font-weight:400;">(${a.date} ${a.time||''})</span></span>
+            <button class="btn btn-ghost btn-sm" onclick="openArchiveRound(${a.id})">👥 Ver/Editar</button>
+          </div>
+          <div style="margin-top:6px;font-size:11px;color:var(--gray);display:flex;flex-wrap:wrap;gap:10px;">
+            <span>🧍 Jugadores: ${playerCount}/15</span>
+            <span>🏆 Ganador: ${winnerLine}</span>
+            ${h ? `<span>💰 Premio: ${h.prize}</span>` : ''}
+          </div>
+        </div>`;
+      }).join('')}
     </div>`;
   }
-  if(!state.history||state.history.length===0){
+  if(!hist.length){
     el.innerHTML = archiveHtml + (archive.length ? '' : '<p style="color:var(--gray);font-size:12px;">Sin partidas registradas.</p>');
     return;
   }
-  const rows = state.history.map(h=>`
+  const rows = hist.map(h=>`
     <tr>
       <td>${h.round}</td>
       <td>${h.date} ${h.time}</td>
@@ -1645,7 +1658,7 @@ function renderHistory(){
       <td>${h.prize}</td>
     </tr>
   `).join('');
-  el.innerHTML = archiveHtml + `<table class="history-table">
+  el.innerHTML = archiveHtml + `<p style="font-size:12px;color:var(--gold);margin:10px 0 6px;">🏁 Historial de premios entregados</p><table class="history-table">
     <tr><th>#</th><th>Fecha</th><th>Ganador</th><th>Línea</th><th>Premio</th></tr>
     ${rows}
   </table>`;
@@ -1703,23 +1716,30 @@ function spawnConfetti(){
   }
 }
 
-// ─── Roulette ────────────────────────────────
-// Wedge k (0-indexed, clockwise from top) shows number (15-k).
-function buildRouletteNumbers(){
-  const wrap = document.getElementById('roulette-numbers');
-  const wheel = document.getElementById('roulette-wheel');
-  if(!wrap || !wheel) return;
-  const size = wheel.offsetWidth;
-  if(!size) return;
-  const radius = size * 0.36;
-  const degPerSlice = 360/15;
-  let html = '';
-  for(let k=0;k<15;k++){
-    const num = 15-k;
-    const angle = k*degPerSlice + degPerSlice/2;
-    html += `<div class="roulette-num" style="transform:translate(${size/2}px, ${size/2}px) rotate(${angle}deg) translate(0, -${radius}px) rotate(${-angle}deg) translate(-50%, -50%);">${num}</div>`;
+// ─── Roulette (vertical reel / slot-machine style) ──
+const REEL_REPEATS = 8; // how many full 1..15 cycles to scroll through before landing
+
+// Builds the vertical strip of numbers and returns the index (within the
+// strip) where the final result lands, so the caller can compute the
+// translateY needed to bring that item under the marker.
+function buildReelStrip(result){
+  const strip = document.getElementById('roulette-reel');
+  if(!strip) return 0;
+  const items = [];
+  for(let c=0;c<REEL_REPEATS;c++){
+    for(let n=1;n<=15;n++) items.push(n);
   }
-  wrap.innerHTML = html;
+  const targetIdx = items.length - 15 + (result - 1); // lands in the final cycle
+  strip.innerHTML = items.map(n=>`<div class="reel-item">${n}</div>`).join('');
+  return targetIdx;
+}
+
+function resetReelIdle(){
+  const strip = document.getElementById('roulette-reel');
+  if(!strip) return;
+  strip.style.transition = 'none';
+  strip.style.transform = 'translateY(0)';
+  strip.innerHTML = '<div class="reel-item idle">?</div>';
 }
 
 function pickRouletteResult(winnerLine){
@@ -1767,8 +1787,7 @@ function renderRoulette(){
     overlay.classList.remove('open');
     return;
   }
-  const wheel = document.getElementById('roulette-wheel');
-  const numberEl = document.getElementById('roulette-number');
+  const frame = document.getElementById('roulette-reel-frame');
   const resultEl = document.getElementById('roulette-result');
   const spinBtn = document.getElementById('roulette-spin-btn');
   const closeBtn = document.getElementById('roulette-close-btn');
@@ -1776,7 +1795,6 @@ function renderRoulette(){
 
   document.getElementById('winner-overlay').classList.remove('open');
   overlay.classList.add('open');
-  buildRouletteNumbers();
 
   spinBtn.style.display = (adminCtx && r.result===null) ? '' : 'none';
   closeBtn.style.display = (adminCtx && r.result!==null) ? '' : 'none';
@@ -1784,27 +1802,25 @@ function renderRoulette(){
   if(r.ts !== lastRouletteTs){
     lastRouletteTs = r.ts;
     if(r.spinning && r.result!==null){
-      numberEl.textContent = '?';
       resultEl.className = 'roulette-result';
       resultEl.textContent = 'Girando…';
-      wheel.style.transition = 'none';
-      wheel.style.transform = 'rotate(0deg)';
-      void wheel.offsetWidth;
-      const degPerSlice = 360/15;
-      const sliceCenter = (15-r.result)*degPerSlice + degPerSlice/2;
-      const targetAngle = 360*5 - sliceCenter;
+      const strip = document.getElementById('roulette-reel');
+      const targetIdx = buildReelStrip(r.result);
+      strip.style.transition = 'none';
+      strip.style.transform = 'translateY(0)';
+      void strip.offsetWidth;
       // Doble requestAnimationFrame: en WebView de Android un solo rAF no
       // garantiza que el navegador pinte el estado "transition:none" antes
-      // de aplicar la transición real, por lo que la rueda nunca animaba.
+      // de aplicar la transición real, por lo que el carrete nunca animaba.
       requestAnimationFrame(()=>{
         requestAnimationFrame(()=>{
-          wheel.style.transition = 'transform 4s cubic-bezier(.17,.67,.12,1)';
-          wheel.style.transform = `rotate(${targetAngle}deg)`;
+          const itemH = frame.offsetHeight;
+          strip.style.transition = 'transform 4s cubic-bezier(.17,.67,.12,1)';
+          strip.style.transform = `translateY(-${targetIdx*itemH}px)`;
         });
       });
       playBeep(300,0.1,'sawtooth');
       setTimeout(()=>{
-        numberEl.textContent = r.result;
         if(r.won){
           resultEl.className = 'roulette-result won';
           resultEl.textContent = `🎉 ¡LA LÍNEA ${r.result} GANÓ EL ACUMULADO! Premio: ${state.accum}`;
@@ -1821,9 +1837,7 @@ function renderRoulette(){
         if(cb) cb.style.display = isAdminContext() ? '' : 'none';
       }, 4200);
     } else if(!r.spinning && r.result===null){
-      numberEl.textContent = '?';
-      wheel.style.transition = 'none';
-      wheel.style.transform = 'rotate(0deg)';
+      resetReelIdle();
       resultEl.className = 'roulette-result';
       resultEl.textContent = adminCtx
         ? 'Pulsa GIRAR para descubrir si ganaste el acumulado'
@@ -1872,7 +1886,19 @@ document.addEventListener('DOMContentLoaded', ()=>{
     m.addEventListener('click', e=>{ if(e.target===m) m.classList.remove('open'); });
   });
 
-  window.addEventListener('resize', ()=>{ buildRouletteNumbers(); });
+  window.addEventListener('resize', ()=>{
+    // Si el carrete está mostrando un resultado fijo (no animando), lo
+    // realineamos al nuevo tamaño del frame para que el marcador siga
+    // apuntando al número correcto tras un cambio de orientación/tamaño.
+    const r = state.roulette;
+    const strip = document.getElementById('roulette-reel');
+    const frame = document.getElementById('roulette-reel-frame');
+    if(r && r.active && r.result!==null && strip && frame){
+      const targetIdx = buildReelStrip(r.result);
+      strip.style.transition = 'none';
+      strip.style.transform = `translateY(-${targetIdx*frame.offsetHeight}px)`;
+    }
+  });
 });
 </script>
 
