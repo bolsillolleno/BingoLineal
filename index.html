@@ -736,7 +736,10 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
     <input type="hidden" id="modal-archive-id" value=""/>
     <div class="form-group" style="margin-bottom:10px;">
       <label>Nombre del cliente</label>
-      <input id="modal-name" type="text" placeholder="Ej: María García"/>
+      <div style="display:flex;gap:6px;">
+        <input id="modal-name" type="text" placeholder="Ej: María García" style="flex:1"/>
+        <button type="button" class="btn btn-ghost btn-sm" style="white-space:nowrap;" onclick="pickContact()">📇 Contactos</button>
+      </div>
     </div>
     <div class="form-group" style="margin-bottom:10px;">
       <label>Teléfono (opcional)</label>
@@ -1357,6 +1360,25 @@ function saveHistory(){
 
 // ─── Lines CRUD ─────────────────────────────
 // archiveId: null = current/live round. Otherwise edits a past round's archived snapshot.
+async function pickContact(){
+  if(!('contacts' in navigator && 'ContactsManager' in window)){
+    showToast('Tu navegador no soporta acceso a contactos. Usa Chrome en Android.','error');
+    return;
+  }
+  try{
+    const props = ['name','tel'];
+    const opts = {multiple:false};
+    const contacts = await navigator.contacts.select(props, opts);
+    if(contacts && contacts.length){
+      const c = contacts[0];
+      if(c.name && c.name.length) document.getElementById('modal-name').value = c.name[0];
+      if(c.tel && c.tel.length) document.getElementById('modal-phone').value = c.tel[0];
+    }
+  }catch(err){
+    console.error('Error al leer contacto:', err);
+    showToast('No se pudo acceder a los contactos.','error');
+  }
+}
 function openLineModal(idx, archiveId=null){
   const l = archiveId
     ? state.roundsArchive.find(a=>a.id===archiveId).lines[idx]
