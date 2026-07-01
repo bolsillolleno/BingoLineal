@@ -896,6 +896,7 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
   <div class="winner-detail" id="wo-detail">Ha completado su línea</div>
   <div class="winner-prize" id="wo-prize">$20.000</div>
   <button class="btn btn-gold" id="wo-btn-roulette" style="margin-top:20px;display:none;" onclick="goToRouletteFromWinner()">🎡 Ir a la Ruleta</button>
+  <button class="btn btn-ghost btn-sm" id="wo-btn-skip" style="display:none;" onclick="finishRoundView()">✕ Cerrar (sin ruleta)</button>
 </div>
 
 <!-- ═══════════════════ ROULETTE OVERLAY ═══════════════════ -->
@@ -1927,12 +1928,14 @@ function showWinner(w){
   spawnConfetti();
   updateWinnerRouletteButton();
 }
-// Muestra el botón "Ir a la Ruleta" SOLO en el dispositivo del admin, y
-// solo mientras haya un ganador pendiente de ruleta.
+// Muestra los botones de admin (ir a ruleta / cerrar) SOLO en el
+// dispositivo del admin, y solo mientras haya un ganador pendiente.
 function updateWinnerRouletteButton(){
   const btn = document.getElementById('wo-btn-roulette');
-  if(!btn) return;
-  btn.style.display = (isAdminContext() && state.winner && !state.roulette) ? 'block' : 'none';
+  const skip = document.getElementById('wo-btn-skip');
+  const show = !!(isAdminContext() && state.winner && !state.roulette);
+  if(btn) btn.style.display = show ? 'block' : 'none';
+  if(skip) skip.style.display = show ? 'inline-block' : 'none';
 }
 function goToRouletteFromWinner(){
   if(!isAdminContext()){ warnNotAdmin(); return; }
@@ -1991,14 +1994,22 @@ function revealRouletteResult(r){
 function closeRouletteOverlay(){
   document.getElementById('roulette-overlay').classList.remove('open');
 }
-// Botón admin "🏁 Terminar Ronda": cierra ambos overlays y devuelve al
-// admin al panel para configurar la siguiente ronda (no borra datos; eso
-// lo hace el botón "🆕 Nueva Ronda" del panel cuando el admin lo decida).
+// Botón admin "🏁 Terminar Ronda" / "✕ Cerrar": cierra AMBOS overlays de
+// verdad, borrando el ganador y el resultado de ruleta del estado
+// compartido (Firebase), para que no se vuelvan a abrir solos al volver a
+// entrar al panel. NO borra jugadores/balotas — eso lo hace "🆕 Nueva
+// Ronda" cuando el admin decide iniciar la siguiente ronda.
 function finishRoundView(){
+  if(!isAdminContext()){ warnNotAdmin(); return; }
+  state.winner = null;
+  state.roulette = null;
   closeRouletteOverlay();
   const wo = document.getElementById('winner-overlay');
   if(wo) wo.classList.remove('open');
-  showToast('Listo. Configura la siguiente ronda desde el panel.','success');
+  saveToFirebase();
+  saveLocal();
+  renderAll();
+  showToast('Ronda cerrada. Configura la siguiente ronda desde el panel.','success');
 }
 function isAdminContext(){
   const v = document.getElementById('view-admin');
