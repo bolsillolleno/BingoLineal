@@ -360,6 +360,39 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
 }
 
 /* ═══════════════════════════════════════
+   ROULETTE OVERLAY (sorteo del acumulado)
+═══════════════════════════════════════ */
+.roulette-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.94);
+  display:none;align-items:center;justify-content:center;z-index:2100;
+  flex-direction:column;gap:18px;text-align:center;padding:20px;
+}
+.roulette-overlay.open{display:flex;animation:fadeIn .4s;}
+.roulette-title{font-family:var(--ff-num);font-size:clamp(22px,5vw,34px);color:var(--purple2);letter-spacing:3px;text-shadow:0 0 24px rgba(138,43,226,0.6);}
+.reel-frame{
+  width:clamp(150px,45vw,220px);height:clamp(150px,45vw,220px);
+  border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, var(--bg3), var(--bg));
+  border:4px solid var(--gold);
+  box-shadow:0 0 40px rgba(255,215,0,0.4), inset 0 0 30px rgba(0,0,0,0.6);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+}
+.reel-number{
+  font-family:var(--ff-num);font-size:clamp(60px,16vw,96px);color:var(--gold);
+  text-shadow:0 0 20px rgba(255,215,0,0.6);
+}
+.reel-number.landed{animation:reelLanded .6s ease;}
+@keyframes reelLanded{
+  0%{transform:scale(1.4);}
+  50%{transform:scale(0.9);}
+  100%{transform:scale(1);}
+}
+.roulette-result{max-width:420px;}
+.roulette-number-label{font-size:12px;letter-spacing:2px;color:var(--gray);text-transform:uppercase;}
+.roulette-msg{font-size:clamp(14px,3vw,18px);font-weight:600;margin-top:6px;line-height:1.4;}
+
+/* ═══════════════════════════════════════
    PUBLIC VIEW
 ═══════════════════════════════════════ */
 #view-public{background:radial-gradient(ellipse at top, #1e1445 0%, #0d0720 60%);}
@@ -544,6 +577,7 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
       <div class="tab-row">
         <button class="tab-btn active" id="admtab-btn-juego" onclick="switchAdminTab('juego')">🎮 Juego</button>
         <button class="tab-btn" id="admtab-btn-historial" onclick="switchAdminTab('historial')">📋 Historial</button>
+        <button class="tab-btn" id="admtab-btn-config" onclick="switchAdminTab('config')">⚙️ Config</button>
       </div>
 
       <div class="tab-content active" id="admtab-juego">
@@ -620,6 +654,15 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
         <button class="btn btn-purple" style="width:100%" onclick="newRound()">🆕 Nueva Ronda</button>
       </div>
 
+      <!-- Roulette manual control -->
+      <div class="panel">
+        <div class="panel-title">🎡 Ruleta del Acumulado</div>
+        <p style="font-size:12px;color:var(--gray);margin-bottom:10px;">
+          Gira sola ~5s después de anunciar al ganador. Si necesitas adelantarla o repetirla, usa este botón.
+        </p>
+        <button class="btn btn-gold" style="width:100%" id="btn-spin-roulette" onclick="spinRoulette()">🎡 Girar Ruleta Ahora</button>
+      </div>
+
       </div><!-- /admtab-juego -->
 
       <div class="tab-content" id="admtab-historial">
@@ -636,6 +679,39 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
           </div>
         </div>
       </div><!-- /admtab-historial -->
+
+      <div class="tab-content" id="admtab-config">
+        <div class="panel">
+          <div class="panel-title">⚙️ Resultado Forzado (opcional)</div>
+          <p style="font-size:12px;color:var(--gray);margin-bottom:10px;line-height:1.5;">
+            Por defecto todo es 100% al azar. Si en ocasiones especiales quieres decidir tú qué línea gana
+            y/o en qué número cae la ruleta, actívalo aquí. Es <strong>secreto</strong>: no se transmite al público
+            hasta que ocurra el sorteo en vivo, y se desactiva solo después de usarse una vez.
+          </p>
+          <div id="forced-config-badge" style="display:none;background:rgba(255,165,0,0.1);border:1px solid rgba(255,165,0,0.3);border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:12px;color:var(--gold2);"></div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Línea forzada a ganar</label>
+              <select id="sel-forced-line">
+                <option value="">🎲 Aleatorio (recomendado)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Número forzado en ruleta</label>
+              <select id="sel-forced-roulette">
+                <option value="">🎲 Aleatorio (recomendado)</option>
+              </select>
+            </div>
+          </div>
+          <div class="btn-row" style="margin-top:6px;">
+            <button class="btn btn-gold" style="flex:1" onclick="saveAdminConfig()">💾 Guardar</button>
+            <button class="btn btn-ghost btn-sm" onclick="clearAdminConfig()">🧹 Desactivar</button>
+          </div>
+          <p style="font-size:11px;color:var(--gray);margin-top:10px;">
+            💡 Tip: si igualas ambos valores, esa línea ganará la ronda Y se llevará también el Acumulado.
+          </p>
+        </div>
+      </div><!-- /admtab-config -->
 
     </div>
 
@@ -820,6 +896,19 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
   <div class="winner-prize" id="wo-prize">$20.000</div>
 </div>
 
+<!-- ═══════════════════ ROULETTE OVERLAY ═══════════════════ -->
+<div class="roulette-overlay" id="roulette-overlay">
+  <div class="roulette-title">🎡 RULETA DEL ACUMULADO</div>
+  <div class="reel-frame">
+    <div class="reel-number" id="reel-number">–</div>
+  </div>
+  <div class="roulette-result" id="ro-result" style="display:none;">
+    <div class="roulette-number-label">Resultado</div>
+    <div class="roulette-msg" id="ro-msg"></div>
+    <button class="btn btn-gold" style="margin-top:14px;" onclick="closeRouletteOverlay()">Continuar</button>
+  </div>
+</div>
+
 <!-- ═══════════════════ TOAST ═══════════════════ -->
 <div class="toast" id="toast"></div>
 
@@ -846,9 +935,18 @@ let state = {
   })),
   winner: null,         // { lineIdx, name, prize, ts }
   accumWon: false,
+  roulette: null,        // { number, ts, wonAccum } — resultado sincronizado de la ruleta 1-15
   history: [],
   roundsArchive: [],     // [{id, round, date, time, lines:[...]}] snapshot of participants per past round
 };
+
+// ─── Configuración secreta del admin (línea/número forzados) ──
+// NUNCA se guarda dentro de `state` (que se transmite público vía saveToFirebase).
+// Se sincroniza en un nodo Firebase aparte, protegido por reglas solo-admin.
+let adminConfig = { forcedLine: null, forcedRoulette: null }; // 1-15 o null = aleatorio
+let roundForcedLine = null; // línea que quedó "armada" para la ronda activa (se consume al usarla)
+let lastRouletteTs = 0;
+let rouletteSpinTimeout = null;
 
 // ─── Auto mode ──────────────────────────────
 let autoInterval = null;
@@ -871,7 +969,9 @@ const ADMIN_UID = 'QpdUwY7avJf8WhZ9N7ZIdd4ZUZA3';
 let db = null;
 let offlineMode = false;
 let firebaseRef = null;
+let configRef = null;
 const FB_PATH = 'bolsillo-lleno-bingo';
+const FB_CONFIG_PATH = 'bolsillo-lleno-bingo-config'; // nodo aparte, solo-admin (ver reglas)
 
 // ─── Sounds (Web Audio) ─────────────────────
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -978,8 +1078,11 @@ function watchAuthState(){
   firebase.auth().onAuthStateChanged(user=>{
     if(user && user.uid === ADMIN_UID){
       currentUser = user;
+      watchAdminConfig(); // solo el admin autenticado puede leer la config forzada
     } else {
       currentUser = null;
+      adminConfig = { forcedLine: null, forcedRoulette: null };
+      if(configRef){ configRef.off(); configRef = null; }
       if(user){
         // Logged in but not the authorized admin
         firebase.auth().signOut();
@@ -987,6 +1090,48 @@ function watchAuthState(){
       }
     }
   });
+}
+
+// ─── Config secreta (línea/ruleta forzada) ──────
+function watchAdminConfig(){
+  if(!db || !currentUser) return;
+  configRef = db.ref(FB_CONFIG_PATH);
+  configRef.on('value', snap=>{
+    const data = snap.val();
+    adminConfig = { forcedLine: (data&&data.forcedLine)||null, forcedRoulette: (data&&data.forcedRoulette)||null };
+    renderAdminConfigPanel();
+  });
+}
+function saveAdminConfig(){
+  if(!currentUser || !configRef){ showToast('Inicia sesión de admin para guardar esto.','error'); return; }
+  const fl = document.getElementById('sel-forced-line').value;
+  const fr = document.getElementById('sel-forced-roulette').value;
+  adminConfig.forcedLine = fl ? parseInt(fl) : null;
+  adminConfig.forcedRoulette = fr ? parseInt(fr) : null;
+  configRef.set(adminConfig).then(()=>{
+    showToast('Configuración guardada (no visible al público)','success');
+    renderAdminConfigPanel();
+  }).catch(e=>showToast('Error guardando config: '+e.message,'error'));
+}
+function clearAdminConfig(){
+  adminConfig = { forcedLine: null, forcedRoulette: null };
+  if(configRef) configRef.set(adminConfig);
+  renderAdminConfigPanel();
+  showToast('Configuración forzada desactivada','success');
+}
+function renderAdminConfigPanel(){
+  const selL = document.getElementById('sel-forced-line');
+  const selR = document.getElementById('sel-forced-roulette');
+  if(selL) selL.value = adminConfig.forcedLine || '';
+  if(selR) selR.value = adminConfig.forcedRoulette || '';
+  const badge = document.getElementById('forced-config-badge');
+  if(badge){
+    const active = adminConfig.forcedLine || adminConfig.forcedRoulette;
+    badge.style.display = active ? 'block' : 'none';
+    if(active){
+      badge.textContent = `⚠️ Activo: ${adminConfig.forcedLine ? 'Línea '+adminConfig.forcedLine+' ganará' : 'Línea aleatoria'}${adminConfig.forcedRoulette ? ' · Ruleta caerá en '+adminConfig.forcedRoulette : ' · Ruleta aleatoria'} (se usa 1 vez y se desactiva sola)`;
+    }
+  }
 }
 
 // ─── Firebase Setup ─────────────────────────
@@ -1041,6 +1186,7 @@ function doInitFirebase(cfg){
         if(!data.roundsArchive) state.roundsArchive = [];
         renderAll();
         checkWinnerDisplay();
+        checkRouletteDisplay();
       }
     });
     document.getElementById('firebase-status').textContent = '🟢 Firebase conectado';
@@ -1049,7 +1195,7 @@ function doInitFirebase(cfg){
   }catch(e){ showToast('Error al inicializar: '+e.message,'error'); }
 }
 function saveToFirebase(){
-  if(offlineMode || !db) { renderAll(); checkWinnerDisplay(); return; }
+  if(offlineMode || !db) { renderAll(); checkWinnerDisplay(); checkRouletteDisplay(); return; }
   firebaseRef.set(state).catch(e=>showToast('Error guardando: '+e.message,'error'));
 }
 
@@ -1115,6 +1261,58 @@ function shuffleRemaining(){
   }
 }
 
+// Baraja el mazo garantizando que `lineIdx` (0-based) sea la primera línea
+// en completarse, sin que otra línea gane antes. El orden se ve azaroso:
+// las balotas de la línea forzada se reparten en posiciones aleatorias,
+// y ninguna otra línea recibe sus 5 balotas antes del punto de corte.
+function buildForcedOrder(lineIdx){
+  const forcedBalls = getBallsForLine(lineIdx); // 5 balotas de la línea a forzar
+  const forcedSet = new Set(forcedBalls);
+  const otherLines = []; // balotas de las otras 14 líneas
+  for(let i=0;i<15;i++){ if(i!==lineIdx) otherLines.push(getBallsForLine(i)); }
+
+  // Por cada línea rival, reservamos 1 balota "bloqueadora" que solo puede
+  // salir DESPUÉS del corte, así nunca junta sus 5 balotas antes de tiempo.
+  const blockers = [];
+  const freePool = []; // hasta 4 balotas por línea rival, libres de usar antes o después
+  otherLines.forEach(balls=>{
+    const shuffled = [...balls].sort(()=>Math.random()-0.5);
+    blockers.push(shuffled[0]);
+    freePool.push(...shuffled.slice(1));
+  });
+  // Mezclar freePool
+  for(let i=freePool.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [freePool[i],freePool[j]]=[freePool[j],freePool[i]];
+  }
+
+  // Punto de corte K = posición (1-indexada) donde cae la 5ª balota forzada.
+  // Se elige entre 18 y 55 para que no gane ni demasiado pronto ni al final.
+  const minK = 18, maxK = Math.min(55, 5 + freePool.length);
+  const K = Math.floor(Math.random()*(maxK-minK+1))+minK;
+  const beforeOtherCount = Math.max(0, K-5);
+  const beforePool = freePool.slice(0, beforeOtherCount);
+  const afterPool  = freePool.slice(beforeOtherCount).concat(blockers);
+  for(let i=afterPool.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [afterPool[i],afterPool[j]]=[afterPool[j],afterPool[i]];
+  }
+
+  // Primeras K-1 posiciones: 4 balotas forzadas + beforePool, mezcladas.
+  const forced4 = forcedBalls.slice(0,4);
+  const lastForced = forcedBalls[4];
+  const firstChunk = [...forced4, ...beforePool];
+  for(let i=firstChunk.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [firstChunk[i],firstChunk[j]]=[firstChunk[j],firstChunk[i]];
+  }
+
+  const order = [...firstChunk, lastForced, ...afterPool];
+  // drawBall() extrae con .pop(), así que invertimos: el último del array
+  // es el primero en salir.
+  remainingBalls = order.slice().reverse();
+}
+
 // ─── Winner Detection ───────────────────────
 function checkWinner(){
   const calledSet = new Set(state.balls);
@@ -1133,13 +1331,49 @@ function checkWinner(){
         ts: Date.now()
       };
       state.status = 'finished';
+      state.roulette = null; // limpiar resultado de ruleta de la ronda anterior
       saveToFirebase();
       saveLocal();
       renderAll();
       saveHistory();
+      scheduleRouletteSpin();
       return;
     }
   }
+}
+// Programa el giro automático de la ruleta unos segundos después del
+// ganador (da tiempo a ver el overlay y confeti). Solo corre en el
+// dispositivo admin, que es el único que llama a checkWinner().
+function scheduleRouletteSpin(){
+  if(rouletteSpinTimeout) clearTimeout(rouletteSpinTimeout);
+  rouletteSpinTimeout = setTimeout(()=>{
+    if(state.winner && !state.roulette) spinRoulette();
+  }, 4500);
+}
+// Gira la ruleta 1-15. Si hay un número forzado configurado, se usa (y se
+// desactiva automáticamente); si no, sale un número al azar.
+function spinRoulette(){
+  if(rouletteSpinTimeout){ clearTimeout(rouletteSpinTimeout); rouletteSpinTimeout=null; }
+  if(!state.winner || state.roulette) return;
+  let number;
+  let wasForced = false;
+  if(adminConfig.forcedRoulette){
+    number = adminConfig.forcedRoulette;
+    wasForced = true;
+    adminConfig.forcedRoulette = null;
+    if(configRef) configRef.set(adminConfig);
+    renderAdminConfigPanel();
+  } else {
+    number = Math.floor(Math.random()*15)+1;
+  }
+  const wonAccum = number === (state.winner.lineIdx+1);
+  state.roulette = { number, ts: Date.now(), wonAccum };
+  if(wonAccum) state.accumWon = true;
+  saveToFirebase();
+  saveLocal();
+  renderAll();
+  updateHistoryWithRoulette();
+  if(wasForced) showToast('Ruleta girada con número forzado (se desactivó automáticamente)','success');
 }
 function checkWinnerDisplay(){
   // Called after every state update (local or remote). Shows winner overlay
@@ -1152,6 +1386,19 @@ function checkWinnerDisplay(){
   if(!state.winner){
     const wo = document.getElementById('winner-overlay');
     if(wo) wo.classList.remove('open');
+  }
+}
+function checkRouletteDisplay(){
+  // Igual que checkWinnerDisplay: se ejecuta en TODOS los clientes cuando
+  // llega un resultado de ruleta nuevo (ts distinto), y dispara la
+  // animación de giro en vivo hasta caer en el número ya decidido.
+  if(state.roulette && state.roulette.ts && state.roulette.ts !== lastRouletteTs){
+    lastRouletteTs = state.roulette.ts;
+    showRoulette(state.roulette);
+  }
+  if(!state.roulette){
+    const ro = document.getElementById('roulette-overlay');
+    if(ro) ro.classList.remove('open');
   }
 }
 
@@ -1192,10 +1439,19 @@ function updateSpeed(){
 // ─── Game Controls ───────────────────────────
 function startGame(){
   state.status = 'active';
-  shuffleRemaining();
+  if(adminConfig.forcedLine){
+    buildForcedOrder(adminConfig.forcedLine-1);
+    roundForcedLine = adminConfig.forcedLine; // se consume: solo aplica a esta ronda
+    adminConfig.forcedLine = null;
+    if(configRef) configRef.set(adminConfig);
+    renderAdminConfigPanel();
+    showToast('Ronda iniciada con línea forzada (se desactivó automáticamente)','success');
+  } else {
+    shuffleRemaining();
+    showToast('¡Juego iniciado!','success');
+  }
   saveToFirebase(); saveLocal();
   renderAll();
-  showToast('¡Juego iniciado!','success');
 }
 function pauseGame(){
   pauseAutoMode();
@@ -1221,10 +1477,13 @@ function confirmReset(){
 }
 function resetBoard(){
   pauseAutoMode();
+  if(rouletteSpinTimeout){ clearTimeout(rouletteSpinTimeout); rouletteSpinTimeout=null; }
   state.balls = [];
   state.winner = null;
+  state.roulette = null;
   state.status = 'idle';
   remainingBalls = [];
+  closeRouletteOverlay();
   saveToFirebase(); saveLocal();
   renderAll();
   showToast('Tablero reiniciado','success');
@@ -1256,7 +1515,7 @@ function openRoundDetail(archiveIdRaw, round){
 
   const winnerEl = document.getElementById('archive-winner-info');
   if(h){
-    winnerEl.innerHTML = `🏆 Ganador: <strong>${h.winner}</strong>${h.line && h.line!=='—' ? ' · '+h.line : ''}<br>💰 Premio: ${h.prize}`;
+    winnerEl.innerHTML = `🏆 Ganador: <strong>${h.winner}</strong>${h.line && h.line!=='—' ? ' · '+h.line : ''}<br>💰 Premio: ${h.prize}${h.roulette ? `<br>🎡 Ruleta: ${h.roulette}${h.wonAccum ? ' · 🤑 ¡Ganó el Acumulado!' : ''}` : ''}`;
     winnerEl.style.display = 'block';
   } else {
     winnerEl.innerHTML = '';
@@ -1308,6 +1567,7 @@ function newRound(){
     `Esto archivará la lista de participantes de la Ronda ${state.round} (la podrás ver/editar en Historial) y comenzará la Ronda ${(parseInt(state.round)||1)+1} con líneas vacías.\n\n¿Deseas continuar?`
   )) return;
   pauseAutoMode();
+  if(rouletteSpinTimeout){ clearTimeout(rouletteSpinTimeout); rouletteSpinTimeout=null; }
   const accumWon = state.accumWon;
   // Archive a snapshot of this round's participants before wiping them
   if(hasParticipants){
@@ -1321,12 +1581,14 @@ function newRound(){
   }
   state.balls = [];
   state.winner = null;
+  state.roulette = null;
   state.status = 'idle';
   state.lines = Array.from({length:15},()=>({name:'',phone:'',notes:'',status:'free'}));
   state.round = (parseInt(state.round)||1) + 1;
   if(accumWon) state.accum = '$0';
   state.accumWon = false;
   remainingBalls = [];
+  closeRouletteOverlay();
   document.getElementById('inp-round').value = state.round;
   saveToFirebase(); saveLocal();
   renderAll();
@@ -1353,8 +1615,19 @@ function saveHistory(){
     line: state.winner ? `Línea ${state.winner.lineIdx+1}` : '—',
     prize: state.prize,
     balls: state.balls.length,
+    roulette: null,
+    wonAccum: false,
   };
   state.history = [entry, ...(state.history||[])].slice(0,50);
+  saveToFirebase(); saveLocal();
+}
+// Se llama cuando la ruleta ya giró: completa el registro de historial de
+// esta ronda (que se guardó antes, apenas se supo el ganador) con el
+// resultado de la ruleta y si se llevó el acumulado.
+function updateHistoryWithRoulette(){
+  if(!state.history || !state.history.length || !state.roulette) return;
+  state.history[0].roulette = state.roulette.number;
+  state.history[0].wonAccum = !!state.roulette.wonAccum;
   saveToFirebase(); saveLocal();
 }
 
@@ -1451,6 +1724,7 @@ function renderAll(){
   renderHistory();
   syncInputs();
   updateButtons();
+  renderAdminConfigPanel();
 }
 
 function syncInputs(){
@@ -1608,6 +1882,7 @@ function renderHistory(){
         ${playerCount!==null ? `<span>🧍 Jugadores: ${playerCount}/15</span>` : ''}
         <span>🏆 Ganador: ${winnerTxt}</span>
         ${h ? `<span>💰 Premio: ${h.prize}</span>` : ''}
+        ${h && h.roulette ? `<span>🎡 Ruleta: ${h.roulette}${h.wonAccum ? ' · 🤑 ¡Ganó el Acumulado!' : ''}</span>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -1627,6 +1902,8 @@ function updateButtons(){
   show('btn-pause', s!=='paused');
   show('btn-resume', s==='paused');
   setBtn('btn-resume', s!=='paused');
+
+  setBtn('btn-spin-roulette', !(state.winner && !state.roulette));
 }
 
 // ─── Winner UI ──────────────────────────────
@@ -1637,6 +1914,52 @@ function showWinner(w){
   document.getElementById('wo-prize').textContent = w.prize || state.prize;
   document.getElementById('winner-overlay').classList.add('open');
   spawnConfetti();
+}
+
+// ─── Roulette UI (sorteo del acumulado) ─────
+function showRoulette(r){
+  const overlay = document.getElementById('roulette-overlay');
+  const numEl = document.getElementById('reel-number');
+  const resEl = document.getElementById('ro-result');
+  resEl.style.display = 'none';
+  numEl.classList.remove('landed');
+  overlay.classList.add('open');
+
+  let ticks = 0;
+  const totalTicks = 24;
+  let delay = 60;
+  function tick(){
+    ticks++;
+    if(ticks < totalTicks){
+      numEl.textContent = Math.floor(Math.random()*15)+1;
+      playBallSound();
+      delay = delay * 1.15; // desacelera el giro
+      setTimeout(tick, delay);
+    } else {
+      numEl.textContent = r.number;
+      numEl.classList.add('landed');
+      revealRouletteResult(r);
+    }
+  }
+  tick();
+}
+function revealRouletteResult(r){
+  playWinnerSound();
+  const resEl = document.getElementById('ro-result');
+  const msgEl = document.getElementById('ro-msg');
+  const winLine = state.winner ? state.winner.lineIdx+1 : null;
+  resEl.style.display = 'block';
+  if(r.wonAccum){
+    msgEl.innerHTML = `🤑 ¡Coincide con la Línea ${winLine}!<br>Se lleva también el <strong>Acumulado</strong>: ${state.accum}`;
+    msgEl.style.color = 'var(--green2)';
+    spawnConfetti();
+  } else {
+    msgEl.innerHTML = `No coincidió con la Línea ganadora (${winLine}).<br>El Acumulado sigue creciendo para la próxima ronda.`;
+    msgEl.style.color = 'var(--gray)';
+  }
+}
+function closeRouletteOverlay(){
+  document.getElementById('roulette-overlay').classList.remove('open');
 }
 function isAdminContext(){
   const v = document.getElementById('view-admin');
@@ -1705,6 +2028,7 @@ function createStars(){
 // ─── Boot ────────────────────────────────────
 document.addEventListener('DOMContentLoaded', ()=>{
   createStars();
+  populateForcedSelects();
   tryLoadSaved();
   renderAll();
 
@@ -1713,6 +2037,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
     m.addEventListener('click', e=>{ if(e.target===m) m.classList.remove('open'); });
   });
 });
+function populateForcedSelects(){
+  const selL = document.getElementById('sel-forced-line');
+  const selR = document.getElementById('sel-forced-roulette');
+  for(let i=1;i<=15;i++){
+    if(selL) selL.insertAdjacentHTML('beforeend', `<option value="${i}">Línea ${i}</option>`);
+    if(selR) selR.insertAdjacentHTML('beforeend', `<option value="${i}">Número ${i}</option>`);
+  }
+}
 </script>
 
 <style>
