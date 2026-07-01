@@ -1,2111 +1,6478 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Bolsillo Lleno – Bingo Lineal</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-
-<style>
-/* ═══════════════════════════════════════
-   TOKENS
-═══════════════════════════════════════ */
-:root{
-  --bg:       #0d0720;
-  --bg2:      #160e30;
-  --bg3:      #1e1445;
-  --gold:     #FFD700;
-  --gold2:    #FFA500;
-  --red:      #C0392B;
-  --red2:     #E74C3C;
-  --green:    #27AE60;
-  --green2:   #2ECC71;
-  --purple:   #8A2BE2;
-  --purple2:  #9B59B6;
-  --white:    #FFFFFF;
-  --gray:     #8892a4;
-  --border:   rgba(255,215,0,0.15);
-  --radius:   12px;
-  --ff-num:   'Bebas Neue', sans-serif;
-  --ff-ui:    'Inter', sans-serif;
-  --shadow:   0 4px 24px rgba(0,0,0,0.5);
-}
-*{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--white);overflow-x:hidden;}
-
-/* ═══════════════════════════════════════
-   SCROLLBAR
-═══════════════════════════════════════ */
-::-webkit-scrollbar{width:6px;}
-::-webkit-scrollbar-track{background:var(--bg2);}
-::-webkit-scrollbar-thumb{background:var(--gold);border-radius:3px;}
-
-/* ═══════════════════════════════════════
-   ROUTER VIEWS
-═══════════════════════════════════════ */
-.view{display:none;min-height:100vh;}
-.view.active{display:flex;flex-direction:column;}
-
-/* ═══════════════════════════════════════
-   LANDING / ROUTER PAGE
-═══════════════════════════════════════ */
-#view-home{
-  align-items:center;justify-content:center;
-  background: radial-gradient(ellipse at center, #1e1445 0%, #0d0720 70%);
-}
-.home-logo{
-  font-family:var(--ff-num);font-size:clamp(48px,8vw,90px);
-  color:var(--gold);text-shadow:0 0 40px rgba(255,215,0,0.5);
-  letter-spacing:4px;text-align:center;line-height:1;
-}
-.home-logo-img{
-  width:clamp(180px,32vw,320px);height:auto;
-  filter:drop-shadow(0 0 40px rgba(255,215,0,0.45));
-}
-.home-sub{color:var(--gray);font-size:14px;letter-spacing:3px;text-transform:uppercase;margin:8px 0 40px;}
-.home-buttons{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;}
-.btn-home{
-  padding:16px 40px;border-radius:50px;border:none;cursor:pointer;
-  font-family:var(--ff-num);font-size:20px;letter-spacing:2px;
-  transition:all .2s;text-decoration:none;display:inline-block;
-}
-.btn-home.admin{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a0a2e;}
-.btn-home.public{background:transparent;border:2px solid var(--gold);color:var(--gold);}
-.btn-home:hover{transform:translateY(-3px);box-shadow:0 8px 30px rgba(255,215,0,0.3);}
-
-/* ═══════════════════════════════════════
-   SHARED TOP BAR
-═══════════════════════════════════════ */
-.topbar{
-  background:var(--bg2);border-bottom:1px solid var(--border);
-  padding:10px 20px;display:flex;align-items:center;justify-content:space-between;
-  position:sticky;top:0;z-index:100;flex-shrink:0;
-}
-.topbar-logo{font-family:var(--ff-num);font-size:22px;color:var(--gold);letter-spacing:2px;}
-.topbar-logo-img{height:42px;width:auto;display:block;}
-.topbar-info{display:flex;gap:20px;align-items:center;}
-.info-chip{
-  background:var(--bg3);border:1px solid var(--border);
-  padding:4px 12px;border-radius:20px;font-size:12px;
-}
-.info-chip span{color:var(--gold);font-weight:600;}
-.btn-back{
-  background:none;border:1px solid var(--border);color:var(--gray);
-  padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;
-}
-.btn-back:hover{color:var(--white);border-color:var(--white);}
-
-/* ═══════════════════════════════════════
-   ADMIN LAYOUT
-═══════════════════════════════════════ */
-#view-admin .content{
-  display:grid;
-  grid-template-columns:260px 1fr 280px;
-  gap:16px;padding:16px;flex:1;
-  overflow:hidden;
-}
-@media(max-width:1100px){
-  #view-admin .content{grid-template-columns:1fr;overflow:auto;}
-}
-
-/* ═══════════════════════════════════════
-   PANELS
-═══════════════════════════════════════ */
-.panel{
-  background:var(--bg2);border:1px solid var(--border);
-  border-radius:var(--radius);padding:16px;overflow-y:auto;
-}
-.panel-title{
-  font-family:var(--ff-num);font-size:16px;letter-spacing:2px;
-  color:var(--gold);margin-bottom:12px;padding-bottom:8px;
-  border-bottom:1px solid var(--border);
-}
-
-/* ═══════════════════════════════════════
-   ROUND INFO FORM
-═══════════════════════════════════════ */
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
-.form-group{display:flex;flex-direction:column;gap:4px;}
-.form-group label{font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:1px;}
-.form-group input,.form-group select{
-  background:var(--bg3);border:1px solid var(--border);color:var(--white);
-  padding:8px 10px;border-radius:8px;font-size:13px;
-}
-.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--gold);}
-
-/* ═══════════════════════════════════════
-   BUTTONS
-═══════════════════════════════════════ */
-.btn{
-  padding:10px 16px;border-radius:8px;border:none;cursor:pointer;
-  font-size:12px;font-weight:600;letter-spacing:1px;transition:all .2s;
-  text-transform:uppercase;display:inline-flex;align-items:center;gap:6px;
-}
-.btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a0a2e;}
-.btn-gold:hover{box-shadow:0 4px 20px rgba(255,215,0,0.4);transform:translateY(-1px);}
-.btn-red{background:linear-gradient(135deg,var(--red),var(--red2));color:#fff;}
-.btn-red:hover{box-shadow:0 4px 20px rgba(192,57,43,0.4);}
-.btn-green{background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;}
-.btn-green:hover{box-shadow:0 4px 20px rgba(39,174,96,0.4);}
-.btn-purple{background:linear-gradient(135deg,var(--purple),var(--purple2));color:#fff;}
-.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--gray);}
-.btn-ghost:hover{border-color:var(--white);color:var(--white);}
-.btn-sm{padding:6px 10px;font-size:11px;}
-.btn:disabled{opacity:.4;cursor:not-allowed;transform:none !important;box-shadow:none !important;}
-.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
-
-/* Control panel buttons */
-.ctrl-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.ctrl-btn{
-  padding:12px 8px;border-radius:10px;border:none;cursor:pointer;
-  font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
-  transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:4px;
-}
-.ctrl-btn .icon{font-size:22px;}
-.ctrl-btn.start{background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;}
-.ctrl-btn.pause{background:linear-gradient(135deg,#e67e22,#f39c12);color:#fff;}
-.ctrl-btn.stop{background:linear-gradient(135deg,var(--red),var(--red2));color:#fff;}
-.ctrl-btn.draw{background:linear-gradient(135deg,var(--purple),var(--purple2));color:#fff;}
-.ctrl-btn.reset{background:linear-gradient(135deg,#2c3e50,#34495e);color:#fff;}
-.ctrl-btn.auto{background:linear-gradient(135deg,#1a6b8a,#2980b9);color:#fff;}
-.ctrl-btn.auto.active{background:linear-gradient(135deg,#0fa36b,#16a085);box-shadow:0 0 20px rgba(22,160,133,0.5);}
-.ctrl-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow);}
-.ctrl-btn:disabled{opacity:.4;cursor:not-allowed;transform:none !important;box-shadow:none !important;}
-
-/* Speed select */
-.speed-row{margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--gray);}
-.speed-row select{
-  background:var(--bg3);border:1px solid var(--border);color:var(--white);
-  padding:5px 10px;border-radius:8px;font-size:12px;flex:1;
-}
-
-/* ═══════════════════════════════════════
-   BINGO BOARD
-═══════════════════════════════════════ */
-.board-wrap{display:flex;flex-direction:column;gap:16px;}
-.board-header{
-  display:grid;grid-template-columns:repeat(5,1fr);gap:4px;text-align:center;
-}
-.col-label{
-  font-family:var(--ff-num);font-size:clamp(24px,3vw,36px);
-  padding:8px 0;border-radius:8px;
-}
-.col-B{color:var(--white);background:rgba(41,128,185,0.3);}
-.col-I{color:var(--white);background:rgba(39,174,96,0.3);}
-.col-N{color:var(--white);background:rgba(192,57,43,0.3);}
-.col-G{color:var(--white);background:rgba(142,68,173,0.3);}
-.col-O{color:var(--white);background:rgba(230,126,34,0.3);}
-
-.board-grid{
-  display:grid;grid-template-columns:repeat(5,1fr);
-  grid-template-rows:repeat(15,1fr);gap:4px;
-}
-.ball-cell{
-  aspect-ratio:1;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-family:var(--ff-num);font-size:clamp(12px,1.5vw,18px);
-  background:var(--bg3);border:2px solid var(--border);
-  color:var(--gray);transition:all .4s;cursor:default;
-  position:relative;
-}
-.ball-cell.called{
-  background:radial-gradient(circle at 35% 35%, #b366ff, var(--purple));
-  border-color:var(--purple2);color:var(--white);
-  box-shadow:0 0 12px rgba(138,43,226,0.6),inset 0 1px 0 rgba(255,255,255,0.3);
-  animation:ballPop .35s ease-out;
-}
-.ball-cell.winner-line{
-  background:radial-gradient(circle at 35% 35%, #ffe066, var(--gold));
-  border-color:var(--gold);color:#1a0a2e;
-  box-shadow:0 0 20px rgba(255,215,0,0.8);
-  animation:winnerPulse 1s ease-in-out infinite;
-}
-@keyframes ballPop{
-  0%{transform:scale(.6);opacity:.3;}
-  70%{transform:scale(1.15);}
-  100%{transform:scale(1);opacity:1;}
-}
-@keyframes winnerPulse{
-  0%,100%{box-shadow:0 0 20px rgba(255,215,0,0.8);}
-  50%{box-shadow:0 0 40px rgba(255,215,0,1);}
-}
-
-/* ═══════════════════════════════════════
-   CURRENT BALL DISPLAY
-═══════════════════════════════════════ */
-.current-ball-wrap{
-  display:flex;flex-direction:column;align-items:center;gap:8px;
-  background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;
-}
-.current-ball{
-  width:clamp(80px,12vw,120px);height:clamp(80px,12vw,120px);
-  border-radius:50%;
-  background:radial-gradient(circle at 35% 35%, #b366ff, var(--purple));
-  border:3px solid var(--purple2);
-  display:flex;align-items:center;justify-content:center;
-  font-family:var(--ff-num);font-size:clamp(36px,6vw,60px);
-  box-shadow:0 0 30px rgba(138,43,226,0.7),inset 0 2px 0 rgba(255,255,255,0.3);
-  transition:all .3s;
-}
-.current-ball.empty{
-  background:var(--bg3);border-color:var(--border);color:var(--gray);
-  box-shadow:none;font-size:24px;
-}
-.ball-counter{font-size:13px;color:var(--gray);}
-.ball-counter span{color:var(--gold);font-weight:700;font-size:16px;}
-
-/* Recent balls */
-.recent-balls{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:4px;}
-.recent-ball{
-  width:36px;height:36px;border-radius:50%;
-  background:rgba(138,43,226,0.3);border:1px solid var(--purple2);
-  display:flex;align-items:center;justify-content:center;
-  font-family:var(--ff-num);font-size:15px;color:var(--purple2);
-}
-
-/* ═══════════════════════════════════════
-   LINES PANEL (ADMIN)
-═══════════════════════════════════════ */
-.line-item{
-  background:var(--bg3);border:1px solid var(--border);
-  border-radius:10px;padding:10px;margin-bottom:8px;
-  display:flex;align-items:center;gap:8px;cursor:pointer;
-  transition:all .2s;
-}
-.line-item:hover{border-color:var(--gold);transform:translateX(2px);}
-.line-item.paid{border-left:3px solid var(--green);}
-.line-item.pending{border-left:3px solid var(--red);}
-.line-item.free{border-left:3px solid var(--gray);opacity:.7;}
-.line-item.winner{border-left:3px solid var(--gold);background:rgba(255,215,0,0.1);animation:winnerPulse 1.5s infinite;}
-.line-num{
-  width:28px;height:28px;border-radius:50%;
-  background:var(--bg2);border:1px solid var(--border);
-  display:flex;align-items:center;justify-content:center;
-  font-family:var(--ff-num);font-size:16px;flex-shrink:0;
-}
-.line-info{flex:1;min-width:0;}
-.line-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.line-balls{font-size:10px;color:var(--gray);margin-top:2px;}
-.line-status{font-size:10px;font-weight:700;white-space:nowrap;}
-.status-paid{color:var(--green2);}
-.status-pending{color:var(--red2);}
-.status-free{color:var(--gray);}
-.line-actions{display:flex;gap:4px;}
-
-/* ═══════════════════════════════════════
-   MODAL
-═══════════════════════════════════════ */
-.modal-overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,0.8);
-  display:none;align-items:center;justify-content:center;z-index:1000;
-  padding:20px;backdrop-filter:blur(4px);
-}
-.modal-overlay.open{display:flex;}
-.modal{
-  background:var(--bg2);border:1px solid var(--border);
-  border-radius:16px;padding:24px;width:100%;max-width:420px;
-  box-shadow:0 20px 60px rgba(0,0,0,0.8);
-  animation:modalIn .25s ease-out;
-}
-@keyframes modalIn{
-  from{transform:scale(.9);opacity:0;}
-  to{transform:scale(1);opacity:1;}
-}
-.modal-title{font-family:var(--ff-num);font-size:20px;color:var(--gold);margin-bottom:16px;letter-spacing:2px;}
-.modal-close{float:right;background:none;border:none;color:var(--gray);font-size:20px;cursor:pointer;}
-.modal-close:hover{color:var(--white);}
-.radio-group{display:flex;gap:8px;margin-top:4px;}
-.radio-group label{
-  flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;
-  display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;
-  transition:all .2s;
-}
-.radio-group input[type=radio]{accent-color:var(--gold);}
-.radio-group label.paid-l{border-color:var(--green);}
-.radio-group label.pending-l{border-color:var(--red);}
-
-/* ═══════════════════════════════════════
-   WINNER MODAL
-═══════════════════════════════════════ */
-.winner-overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,0.92);
-  display:none;align-items:center;justify-content:center;z-index:2000;
-  flex-direction:column;gap:24px;text-align:center;
-  padding:20px;
-}
-.winner-overlay.open{display:flex;animation:fadeIn .5s;}
-.winner-trophy{font-size:80px;animation:bounce 1s ease infinite;}
-.winner-title{font-family:var(--ff-num);font-size:clamp(40px,8vw,80px);color:var(--gold);letter-spacing:4px;text-shadow:0 0 40px rgba(255,215,0,0.7);}
-.winner-name{font-size:clamp(20px,4vw,36px);font-weight:700;color:var(--white);}
-.winner-detail{font-size:16px;color:var(--gray);margin-top:4px;}
-.winner-prize{font-family:var(--ff-num);font-size:clamp(30px,5vw,50px);color:var(--green2);margin-top:8px;}
-.confetti-wrap{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
-@keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-20px);}}
-@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
-
-/* Confetti particles */
-.confetti-piece{
-  position:absolute;width:10px;height:10px;
-  border-radius:2px;animation:confettiFall linear infinite;
-}
-@keyframes confettiFall{
-  0%{transform:translateY(-20px) rotate(0deg);opacity:1;}
-  100%{transform:translateY(100vh) rotate(720deg);opacity:0;}
-}
-
-/* ═══════════════════════════════════════
-   ROULETTE OVERLAY (sorteo del acumulado)
-═══════════════════════════════════════ */
-.roulette-overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,0.94);
-  display:none;align-items:center;justify-content:center;z-index:2100;
-  flex-direction:column;gap:18px;text-align:center;padding:20px;
-}
-.roulette-overlay.open{display:flex;animation:fadeIn .4s;}
-.roulette-title{font-family:var(--ff-num);font-size:clamp(22px,5vw,34px);color:var(--purple2);letter-spacing:3px;text-shadow:0 0 24px rgba(138,43,226,0.6);}
-.reel-frame{
-  width:clamp(150px,45vw,220px);height:clamp(150px,45vw,220px);
-  border-radius:50%;
-  background:radial-gradient(circle at 35% 30%, var(--bg3), var(--bg));
-  border:4px solid var(--gold);
-  box-shadow:0 0 40px rgba(255,215,0,0.4), inset 0 0 30px rgba(0,0,0,0.6);
-  display:flex;align-items:center;justify-content:center;
-  position:relative;
-}
-.reel-number{
-  font-family:var(--ff-num);font-size:clamp(60px,16vw,96px);color:var(--gold);
-  text-shadow:0 0 20px rgba(255,215,0,0.6);
-}
-.reel-number.landed{animation:reelLanded .6s ease;}
-@keyframes reelLanded{
-  0%{transform:scale(1.4);}
-  50%{transform:scale(0.9);}
-  100%{transform:scale(1);}
-}
-.roulette-result{max-width:420px;}
-.roulette-number-label{font-size:12px;letter-spacing:2px;color:var(--gray);text-transform:uppercase;}
-.roulette-msg{font-size:clamp(14px,3vw,18px);font-weight:600;margin-top:6px;line-height:1.4;}
-
-/* ═══════════════════════════════════════
-   PUBLIC VIEW
-═══════════════════════════════════════ */
-#view-public{background:radial-gradient(ellipse at top, #1e1445 0%, #0d0720 60%);}
-#view-public .content{
-  display:grid;
-  grid-template-columns:200px 1fr 280px;
-  gap:16px;padding:16px;flex:1;
-  overflow:hidden;
-}
-@media(max-width:1000px){
-  #view-public .content{grid-template-columns:1fr;overflow:auto;}
-}
-
-/* Prize display */
-.prize-card{
-  background:linear-gradient(135deg,rgba(255,215,0,0.1),rgba(255,165,0,0.05));
-  border:1px solid rgba(255,215,0,0.3);border-radius:12px;
-  padding:16px;text-align:center;margin-bottom:10px;
-}
-.prize-label{font-size:10px;letter-spacing:2px;color:var(--gray);text-transform:uppercase;}
-.prize-value{font-family:var(--ff-num);font-size:clamp(22px,3vw,30px);color:var(--gold);}
-.prize-card.accum .prize-value{color:var(--green2);}
-
-/* Public lines */
-.pub-lines{display:flex;flex-direction:column;gap:6px;}
-.pub-line{
-  background:var(--bg3);border:1px solid var(--border);
-  border-radius:8px;padding:8px 12px;
-  display:flex;align-items:center;gap:8px;
-}
-.pub-line.winner{
-  border-color:var(--gold);background:rgba(255,215,0,0.1);
-  animation:winnerPulse 1.5s infinite;
-}
-.pub-line-num{
-  font-family:var(--ff-num);font-size:18px;color:var(--gold);
-  width:24px;text-align:center;
-}
-.pub-line-info{flex:1;}
-.pub-line-name{font-size:13px;font-weight:600;}
-.pub-line-balls{font-size:10px;color:var(--gray);}
-.pub-line-progress{
-  display:flex;gap:3px;
-}
-.prog-dot{
-  width:10px;height:10px;border-radius:50%;
-  background:var(--bg2);border:1px solid var(--border);
-  transition:all .3s;
-}
-.prog-dot.hit{background:var(--purple);border-color:var(--purple2);box-shadow:0 0 6px rgba(138,43,226,0.5);}
-.prog-dot.hit.win{background:var(--gold);border-color:var(--gold2);box-shadow:0 0 6px rgba(255,215,0,0.8);}
-
-/* Toast notification */
-.toast{
-  position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);
-  background:var(--bg2);border:1px solid var(--border);border-radius:12px;
-  padding:12px 24px;font-size:14px;z-index:9999;
-  transition:transform .3s;white-space:nowrap;
-  box-shadow:var(--shadow);
-}
-.toast.show{transform:translateX(-50%) translateY(0);}
-.toast.success{border-color:var(--green);color:var(--green2);}
-.toast.error{border-color:var(--red);color:var(--red2);}
-
-/* History table */
-.history-table{width:100%;border-collapse:collapse;font-size:12px;}
-.history-table th{padding:8px;text-align:left;color:var(--gray);border-bottom:1px solid var(--border);font-weight:500;}
-.history-table td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.05);}
-.history-table tr:hover td{background:rgba(255,255,255,0.03);}
-
-/* ═══════════════════════════════════════
-   GAME STATE BADGE
-═══════════════════════════════════════ */
-.state-badge{
-  padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;
-  letter-spacing:1px;text-transform:uppercase;
-}
-.state-idle{background:rgba(255,255,255,0.1);color:var(--gray);}
-.state-active{background:rgba(39,174,96,0.2);color:var(--green2);border:1px solid var(--green);}
-.state-paused{background:rgba(230,126,34,0.2);color:#f39c12;border:1px solid #e67e22;}
-.state-finished{background:rgba(192,57,43,0.2);color:var(--red2);border:1px solid var(--red);}
-
-/* ═══════════════════════════════════════
-   TABS (ADMIN)
-═══════════════════════════════════════ */
-.tab-row{display:flex;gap:4px;margin-bottom:12px;}
-.tab-btn{
-  padding:6px 12px;border-radius:6px;border:none;cursor:pointer;
-  font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;
-  background:var(--bg3);color:var(--gray);transition:all .2s;
-}
-.tab-btn.active{background:var(--gold);color:#1a0a2e;}
-.tab-content{display:none;}
-.tab-content.active{display:block;}
-
-/* ═══════════════════════════════════════
-   RESPONSIVIDAD MÓVIL
-═══════════════════════════════════════ */
-@media(max-width:700px){
-  .topbar{flex-wrap:wrap;row-gap:6px;padding:8px 12px;}
-  .topbar-info{display:flex;order:3;width:100%;justify-content:center;gap:10px;}
-  .topbar-logo{font-size:17px;}
-  .topbar-logo-img{height:30px;}
-  .home-logo-img{width:clamp(140px,55vw,220px);}
-  .form-grid{grid-template-columns:1fr;}
-  .ctrl-grid{grid-template-columns:repeat(3,1fr);}
-  .home-buttons{flex-direction:column;align-items:stretch;}
-  #view-admin .content,#view-public .content{padding:10px;gap:10px;}
-  .panel{padding:12px;}
-  .board-grid{gap:3px;}
-  .ball-cell{font-size:clamp(10px,3.2vw,15px);}
-  .current-ball{width:clamp(64px,20vw,90px);height:clamp(64px,20vw,90px);font-size:clamp(26px,8vw,42px);}
-  .ctrl-btn{padding:10px 6px;font-size:10px;}
-  .ctrl-btn .icon{font-size:18px;}
-  .modal{padding:18px;}
-  .winner-trophy{font-size:56px;}
-  .reel-frame{width:clamp(130px,65vw,190px);height:clamp(130px,65vw,190px);}
-  .reel-item{height:clamp(130px,65vw,190px);}
-  .history-table{font-size:10px;}
-  .history-table th,.history-table td{padding:5px;}
-  .tab-btn{flex:1;font-size:10px;padding:8px 6px;}
-}
-@media(max-width:420px){
-  .ctrl-grid{grid-template-columns:repeat(2,1fr);}
-  .info-chip{font-size:10px;padding:3px 8px;}
-}
-</style>
-</head>
-<body>
-
-<!-- ═══════════════════ HOME ═══════════════════ -->
-<div id="view-home" class="view active">
-  <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;">
-    <div id="stars-bg"></div>
-  </div>
-  <div style="position:relative;z-index:1;text-align:center;padding:40px 20px;">
-    <img src="https://i.imgur.com/H1sQS4p.png" alt="Bolsillo Lleno x5" class="home-logo-img"/>
-    <div class="home-sub">Sistema de Bingo Lineal en Vivo</div>
-    <div class="home-buttons">
-      <button class="btn-home admin" onclick="goToAdmin()">⚙️ Panel Admin</button>
-      <button class="btn-home public" onclick="goTo('public')">📺 Pantalla Pública</button>
-    </div>
-    <div id="firebase-status" style="margin-top:30px;font-size:12px;color:var(--gray);">
-      Conectando con Firebase…
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════ LOGIN ═══════════════════ -->
-<div id="view-login" class="view">
-  <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:20px;">
-    <div class="panel" style="max-width:380px;width:100%;">
-      <div class="panel-title" style="text-align:center;font-size:20px;">🔐 ACCESO ADMIN</div>
-      <div class="form-group" style="margin-bottom:10px;">
-        <label>Correo electrónico</label>
-        <input id="login-email" type="email" placeholder="admin@bolsillolleno.com"/>
-      </div>
-      <div class="form-group" style="margin-bottom:16px;">
-        <label>Contraseña</label>
-        <input id="login-password" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
-      </div>
-      <div id="login-error" style="color:var(--red2);font-size:12px;margin-bottom:10px;display:none;"></div>
-      <button class="btn btn-gold" style="width:100%" onclick="doLogin()">Ingresar</button>
-      <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;" onclick="goTo('home')">← Volver</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════ ADMIN ═══════════════════ -->
-<div id="view-admin" class="view">
-  <div class="topbar">
-    <img src="https://i.imgur.com/H1sQS4p.png" alt="Bolsillo Lleno x5" class="topbar-logo-img"/>
-    <div class="topbar-info">
-      <div class="info-chip">Ronda <span id="a-round">1</span></div>
-      <div id="a-state-badge" class="state-badge state-idle">Inactivo</div>
-    </div>
-    <button class="btn-back" onclick="doLogout()">🚪 Salir</button>
-  </div>
-  <div class="content">
-    <div style="display:flex;flex-direction:column;gap:12px;overflow-y:auto;">
-
-      <div class="tab-row">
-        <button class="tab-btn active" id="admtab-btn-juego" onclick="switchAdminTab('juego')">🎮 Juego</button>
-        <button class="tab-btn" id="admtab-btn-historial" onclick="switchAdminTab('historial')">📋 Historial</button>
-        <button class="tab-btn" id="admtab-btn-config" onclick="switchAdminTab('config')">⚙️ Config</button>
-      </div>
-
-      <div class="tab-content active" id="admtab-juego">
-
-      <!-- Round Info -->
-      <div class="panel">
-        <div class="panel-title">ℹ️ Información de Ronda</div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Ronda #</label>
-            <input id="inp-round" type="number" value="1" min="1"/>
-          </div>
-          <div class="form-group">
-            <label>Valor línea</label>
-            <input id="inp-price" type="text" placeholder="$5.000"/>
-          </div>
-          <div class="form-group">
-            <label>Premio</label>
-            <input id="inp-prize" type="text" placeholder="$50.000"/>
-          </div>
-          <div class="form-group">
-            <label>Acumulado</label>
-            <input id="inp-accum" type="text" placeholder="$100.000"/>
-          </div>
-        </div>
-        <button class="btn btn-gold" style="width:100%" onclick="saveRoundInfo()">💾 Guardar</button>
-      </div>
-
-      <!-- Game Controls -->
-      <div class="panel">
-        <div class="panel-title">🎮 Controles del Juego</div>
-        <div class="ctrl-grid">
-          <button class="ctrl-btn start" id="btn-start" onclick="startGame()">
-            <span class="icon">▶️</span>Iniciar
-          </button>
-          <button class="ctrl-btn pause" id="btn-pause" onclick="pauseGame()" disabled>
-            <span class="icon">⏸️</span>Pausar
-          </button>
-          <button class="ctrl-btn start" id="btn-resume" onclick="resumeGame()" disabled style="display:none">
-            <span class="icon">▶️</span>Continuar
-          </button>
-          <button class="ctrl-btn stop" id="btn-stop" onclick="stopGame()" disabled>
-            <span class="icon">⏹️</span>Finalizar
-          </button>
-          <button class="ctrl-btn draw" id="btn-draw" onclick="drawBall()" disabled>
-            <span class="icon">🎲</span>Balota
-          </button>
-          <button class="ctrl-btn reset" id="btn-reset" onclick="confirmReset()">
-            <span class="icon">🔄</span>Reiniciar
-          </button>
-        </div>
-        <!-- Auto mode -->
-        <div style="margin-top:10px;">
-          <button class="ctrl-btn auto" id="btn-auto" onclick="toggleAuto()" disabled style="width:100%;">
-            <span class="icon">⚡</span><span id="auto-label">Modo Automático</span>
-          </button>
-          <div class="speed-row">
-            <span>Velocidad:</span>
-            <select id="sel-speed" onchange="updateSpeed()">
-              <option value="2000">2 segundos</option>
-              <option value="3000" selected>3 segundos</option>
-              <option value="5000">5 segundos</option>
-              <option value="8000">8 segundos</option>
-              <option value="10000">10 segundos</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <!-- New Round -->
-      <div class="panel">
-        <div class="panel-title">🔁 Nueva Ronda</div>
-        <p style="font-size:12px;color:var(--gray);margin-bottom:10px;">Limpia balotas y jugadores. El acumulado se mantiene si no fue ganado.</p>
-        <button class="btn btn-purple" style="width:100%" onclick="newRound()">🆕 Nueva Ronda</button>
-      </div>
-
-      <!-- Roulette manual control -->
-      <div class="panel">
-        <div class="panel-title">🎡 Ruleta del Acumulado</div>
-        <p style="font-size:12px;color:var(--gray);margin-bottom:10px;">
-          Ya NO gira sola. Cuando salga un ganador, verás un botón "🎡 Ir a la Ruleta" en esa misma pantalla.
-          Si prefieres, también puedes girarla manualmente desde aquí.
-        </p>
-        <button class="btn btn-gold" style="width:100%" id="btn-spin-roulette" onclick="spinRoulette()">🎡 Girar Ruleta Ahora</button>
-      </div>
-
-      </div><!-- /admtab-juego -->
-
-      <div class="tab-content" id="admtab-historial">
-        <div class="panel">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;">
-            <div class="panel-title" style="margin-bottom:0;">📋 Historial de Rondas</div>
-            <button class="btn btn-ghost btn-sm" style="color:var(--red,#ff5c5c);white-space:nowrap;" onclick="clearAllHistory()">🧹 Limpiar todo</button>
-          </div>
-          <p style="font-size:12px;color:var(--gray);margin-bottom:10px;">
-            Toca una ronda para ver sus jugadores, el ganador y el premio entregado, o para eliminarla del historial.
-          </p>
-          <div id="history-list" style="font-size:12px;">
-            <p style="color:var(--gray);">Sin partidas registradas.</p>
-          </div>
-        </div>
-      </div><!-- /admtab-historial -->
-
-      <div class="tab-content" id="admtab-config">
-        <div class="panel">
-          <div class="panel-title">⚙️ Resultado Forzado (opcional)</div>
-          <p style="font-size:12px;color:var(--gray);margin-bottom:10px;line-height:1.5;">
-            Por defecto todo es 100% al azar. Si en ocasiones especiales quieres decidir tú qué línea gana
-            y/o en qué número cae la ruleta, actívalo aquí. Es <strong>secreto</strong>: no se transmite al público
-            hasta que ocurra el sorteo en vivo, y se desactiva solo después de usarse una vez.
-          </p>
-          <div id="forced-config-badge" style="display:none;background:rgba(255,165,0,0.1);border:1px solid rgba(255,165,0,0.3);border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:12px;color:var(--gold2);"></div>
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Línea forzada a ganar</label>
-              <select id="sel-forced-line">
-                <option value="">🎲 Aleatorio (recomendado)</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Número forzado en ruleta</label>
-              <select id="sel-forced-roulette">
-                <option value="">🎲 Aleatorio (recomendado)</option>
-              </select>
-            </div>
-          </div>
-          <div class="btn-row" style="margin-top:6px;">
-            <button class="btn btn-gold" style="flex:1" onclick="saveAdminConfig()">💾 Guardar</button>
-            <button class="btn btn-ghost btn-sm" onclick="clearAdminConfig()">🧹 Desactivar</button>
-          </div>
-          <p style="font-size:11px;color:var(--gray);margin-top:10px;">
-            💡 Tip: si igualas ambos valores, esa línea ganará la ronda Y se llevará también el Acumulado.
-          </p>
-        </div>
-      </div><!-- /admtab-config -->
-
-    </div>
-
-    <!-- CENTER: Board -->
-    <div class="panel" style="overflow-y:auto;">
-      <div class="panel-title">🎱 Tablero Maestro</div>
-      <div class="board-wrap">
-        <!-- Current ball -->
-        <div class="current-ball-wrap">
-          <div id="current-ball-display" class="current-ball empty">–</div>
-          <div class="ball-counter">BOLA: <span id="ball-count">0</span> / 75</div>
-          <div class="recent-balls" id="recent-balls-display"></div>
-        </div>
-        <!-- Column headers -->
-        <div class="board-header">
-          <div class="col-label col-B">B</div>
-          <div class="col-label col-I">I</div>
-          <div class="col-label col-N">N</div>
-          <div class="col-label col-G">G</div>
-          <div class="col-label col-O">O</div>
-        </div>
-        <!-- 75-ball grid (B=1-15, I=16-30, N=31-45, G=46-60, O=61-75 — arranged in rows by line) -->
-        <div class="board-grid" id="board-grid"></div>
-      </div>
-    </div>
-
-    <!-- RIGHT: Lines -->
-    <div class="panel" style="overflow-y:auto;">
-      <div class="panel-title">👥 Las 15 Líneas</div>
-      <div id="lines-admin"></div>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════ PUBLIC ═══════════════════ -->
-<div id="view-public" class="view">
-  <div class="topbar">
-    <img src="https://i.imgur.com/H1sQS4p.png" alt="Bolsillo Lleno x5" class="topbar-logo-img"/>
-    <div class="topbar-info">
-      <div class="info-chip">Ronda <span id="p-round">1</span></div>
-      <div id="p-state-badge" class="state-badge state-idle">Inactivo</div>
-    </div>
-    <button class="btn-back" onclick="goTo('home')">← Inicio</button>
-  </div>
-  <div class="content">
-    <!-- LEFT: Prizes + Info -->
-    <div style="display:flex;flex-direction:column;gap:12px;overflow-y:auto;">
-      <div class="prize-card">
-        <div class="prize-label">Premio Principal</div>
-        <div class="prize-value" id="p-prize">$0</div>
-      </div>
-      <div class="prize-card accum">
-        <div class="prize-label">🤑 Acumulado</div>
-        <div class="prize-value" id="p-accum">$0</div>
-      </div>
-      <div class="prize-card" style="flex:1;">
-        <div class="prize-label">Valor Línea</div>
-        <div class="prize-value" id="p-price">$0</div>
-      </div>
-
-      <!-- Current ball (public) -->
-      <div class="current-ball-wrap" style="background:transparent;border-color:rgba(255,215,0,0.2);">
-        <div id="p-current-ball" class="current-ball empty">–</div>
-        <div class="ball-counter">BOLA: <span id="p-ball-count">0</span> / 75</div>
-        <div class="recent-balls" id="p-recent-balls"></div>
-      </div>
-    </div>
-
-    <!-- CENTER: Board public -->
-    <div class="panel" style="overflow-y:auto;">
-      <div class="panel-title">🎱 Tablero en Vivo</div>
-      <div class="board-wrap">
-        <div class="board-header">
-          <div class="col-label col-B">B</div>
-          <div class="col-label col-I">I</div>
-          <div class="col-label col-N">N</div>
-          <div class="col-label col-G">G</div>
-          <div class="col-label col-O">O</div>
-        </div>
-        <div class="board-grid" id="p-board-grid"></div>
-      </div>
-    </div>
-
-    <!-- RIGHT: Public lines -->
-    <div class="panel" style="overflow-y:auto;">
-      <div class="panel-title">👥 Jugadores</div>
-      <div class="pub-lines" id="p-lines-display"></div>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════ LINE MODAL ═══════════════════ -->
-<div class="modal-overlay" id="line-modal">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal('line-modal')">✕</button>
-    <div class="modal-title">✏️ LÍNEA <span id="modal-line-num">1</span></div>
-    <input type="hidden" id="modal-line-idx"/>
-    <input type="hidden" id="modal-archive-id" value=""/>
-    <div class="form-group" style="margin-bottom:10px;">
-      <label>Nombre del cliente</label>
-      <div style="display:flex;gap:6px;">
-        <input id="modal-name" type="text" placeholder="Ej: María García" style="flex:1"/>
-        <button type="button" class="btn btn-ghost btn-sm" style="white-space:nowrap;" onclick="pickContact()">📇 Contactos</button>
-      </div>
-    </div>
-    <div class="form-group" style="margin-bottom:10px;">
-      <label>Teléfono (opcional)</label>
-      <input id="modal-phone" type="tel" placeholder="+57 300 000 0000"/>
-    </div>
-    <div class="form-group" style="margin-bottom:10px;">
-      <label>Observaciones</label>
-      <input id="modal-notes" type="text" placeholder="Notas adicionales…"/>
-    </div>
-    <div class="form-group" style="margin-bottom:16px;">
-      <label>Estado del pago</label>
-      <div class="radio-group">
-        <label class="free-l">
-          <input type="radio" name="pay-status" value="free"/> ⬜ Libre
-        </label>
-        <label class="pending-l">
-          <input type="radio" name="pay-status" value="pending"/> ❌ Pendiente
-        </label>
-        <label class="paid-l">
-          <input type="radio" name="pay-status" value="paid"/> ✅ Pagó
-        </label>
-      </div>
-    </div>
-    <div class="btn-row">
-      <button class="btn btn-gold" onclick="saveLine()" style="flex:1">💾 Guardar</button>
-      <button class="btn btn-red btn-sm" onclick="deleteLine()">🗑️ Borrar</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════ ARCHIVED ROUND MODAL ═══════════════════ -->
-<div class="modal-overlay" id="archive-modal">
-  <div class="modal" style="max-width:480px;">
-    <button class="modal-close" onclick="closeModal('archive-modal')">✕</button>
-    <div class="modal-title">📋 Ronda <span id="archive-round-num">1</span></div>
-    <input type="hidden" id="modal-archive-current-id" value=""/>
-    <input type="hidden" id="modal-archive-current-round" value=""/>
-    <div id="archive-winner-info" style="display:none;background:rgba(212,175,55,0.08);border:1px solid rgba(212,175,55,0.25);border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:10px;line-height:1.6;"></div>
-    <p style="font-size:11px;color:var(--gray);margin-bottom:10px;">👥 Toca una línea para editarla.</p>
-    <div id="archive-lines-list" style="display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow-y:auto;margin-bottom:14px;"></div>
-    <button class="btn btn-red btn-sm" style="width:100%" onclick="deleteRoundFromHistory()">🗑️ Eliminar esta ronda del historial</button>
-  </div>
-</div>
-
-<!-- ═══════════════════ FIREBASE CONFIG MODAL ═══════════════════ -->
-<div class="modal-overlay" id="firebase-modal">
-  <div class="modal" style="max-width:520px;">
-    <button class="modal-close" onclick="closeModal('firebase-modal')">✕</button>
-    <div class="modal-title">🔥 CONFIGURAR FIREBASE</div>
-    <p style="font-size:12px;color:var(--gray);margin-bottom:12px;">Pega aquí tu objeto firebaseConfig de la consola de Firebase:</p>
-    <textarea id="firebase-config-input" style="
-      width:100%;height:180px;background:var(--bg3);border:1px solid var(--border);
-      color:var(--white);padding:10px;border-radius:8px;font-size:11px;font-family:monospace;resize:vertical;
-    " placeholder='{
-  "apiKey": "...",
-  "authDomain": "...",
-  "databaseURL": "https://...",
-  "projectId": "...",
-  "storageBucket": "...",
-  "messagingSenderId": "...",
-  "appId": "..."
-}'></textarea>
-    <div class="btn-row" style="margin-top:12px;">
-      <button class="btn btn-gold" onclick="applyFirebaseConfig()" style="flex:1">🔗 Conectar</button>
-      <button class="btn btn-ghost btn-sm" onclick="useOfflineMode()">📴 Modo offline (demo)</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════ WINNER OVERLAY ═══════════════════ -->
-<div class="winner-overlay" id="winner-overlay">
-  <div class="confetti-wrap" id="confetti-wrap"></div>
-  <div class="winner-trophy">🏆</div>
-  <div class="winner-title">¡GANADOR!</div>
-  <div id="wo-line-label" style="font-size:14px;color:var(--gray);letter-spacing:2px;">LÍNEA 7</div>
-  <div class="winner-name" id="wo-name">Pablo Castro</div>
-  <div class="winner-detail" id="wo-detail">Ha completado su línea</div>
-  <div class="winner-prize" id="wo-prize">$20.000</div>
-  <button class="btn btn-gold" id="wo-btn-roulette" style="margin-top:20px;display:none;" onclick="goToRouletteFromWinner()">🎡 Ir a la Ruleta</button>
-  <button class="btn btn-ghost btn-sm" id="wo-btn-skip" style="display:none;" onclick="finishRoundView()">✕ Cerrar (sin ruleta)</button>
-</div>
-
-<!-- ═══════════════════ ROULETTE OVERLAY ═══════════════════ -->
-<div class="roulette-overlay" id="roulette-overlay">
-  <div class="roulette-title">🎡 RULETA DEL ACUMULADO</div>
-  <div class="reel-frame">
-    <div class="reel-number" id="reel-number">–</div>
-  </div>
-  <div class="roulette-result" id="ro-result" style="display:none;">
-    <div class="roulette-number-label">Resultado</div>
-    <div class="roulette-msg" id="ro-msg"></div>
-    <div class="btn-row" style="margin-top:14px;">
-      <button class="btn btn-ghost" id="ro-btn-continue" onclick="closeRouletteOverlay()">Continuar</button>
-      <button class="btn btn-gold" id="ro-btn-finish" style="display:none;" onclick="finishRoundView()">🏁 Terminar Ronda</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════ TOAST ═══════════════════ -->
-<div class="toast" id="toast"></div>
-
-<script>
-/* ═══════════════════════════════════════════════
-   BINGO LINEAL — Application Logic
-   Board: 75 balls arranged as 15 rows × 5 cols
-   Row i (1-indexed) = Line i
-   Ball at row i, col j = i + (j-1)*15
-   e.g. Line 1: 1,16,31,46,61
-        Line 15: 15,30,45,60,75
-═══════════════════════════════════════════════ */
-
-// ─── Game State ──────────────────────────────
-let state = {
-  round: 1,
-  price: '$5.000',
-  prize: '$50.000',
-  accum: '$100.000',
-  status: 'idle',       // idle | active | paused | finished
-  balls: [],            // drawn balls in order
-  lines: Array.from({length:15}, (_,i) => ({
-    name: '', phone: '', notes: '', status: 'free'
-  })),
-  winner: null,         // { lineIdx, name, prize, ts }
-  accumWon: false,
-  roulette: null,        // { number, ts, wonAccum } — resultado sincronizado de la ruleta 1-15
-  history: [],
-  roundsArchive: [],     // [{id, round, date, time, lines:[...]}] snapshot of participants per past round
-};
-
-// ─── Configuración secreta del admin (línea/número forzados) ──
-// NUNCA se guarda dentro de `state` (que se transmite público vía saveToFirebase).
-// Se sincroniza en un nodo Firebase aparte, protegido por reglas solo-admin.
-let adminConfig = { forcedLine: null, forcedRoulette: null }; // 1-15 o null = aleatorio
-let roundForcedLine = null; // línea que quedó "armada" para la ronda activa (se consume al usarla)
-let lastRouletteTs = 0;
-let rouletteSpinTimeout = null;
-
-// ─── Auto mode ──────────────────────────────
-let autoInterval = null;
-let autoActive   = false;
-let remainingBalls = [];   // shuffled pool
-let lastWinnerTs = 0;
-
-// ─── Firebase (preconfigurado) ───────────────
-const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyA2_BKI_kA3QdmXFEV08Pd3Vu2yWgJ15hU",
-  authDomain: "bolsillolleno-5d1f8.firebaseapp.com",
-  databaseURL: "https://bolsillolleno-5d1f8-default-rtdb.firebaseio.com",
-  projectId: "bolsillolleno-5d1f8",
-  storageBucket: "bolsillolleno-5d1f8.firebasestorage.app",
-  messagingSenderId: "589773139731",
-  appId: "1:589773139731:web:ab6495056a3697b752f4e6"
-};
-const ADMIN_UID = 'QpdUwY7avJf8WhZ9N7ZIdd4ZUZA3';
-
-let db = null;
-let offlineMode = false;
-let firebaseRef = null;
-let configRef = null;
-const FB_PATH = 'bolsillo-lleno-bingo';
-const FB_CONFIG_PATH = 'bolsillo-lleno-bingo-config'; // nodo aparte, solo-admin (ver reglas)
-
-// ─── Sounds (Web Audio) ─────────────────────
-const AudioCtx = window.AudioContext || window.webkitAudioContext;
-let audioCtx = null;
-function getAudio(){
-  if(!audioCtx) audioCtx = new AudioCtx();
-  return audioCtx;
-}
-function playBeep(freq=440, dur=0.15, type='sine'){
-  try{
-    const ac = getAudio();
-    const osc = ac.createOscillator();
-    const gain = ac.createGain();
-    osc.connect(gain); gain.connect(ac.destination);
-    osc.type = type; osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.3, ac.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+dur);
-    osc.start(); osc.stop(ac.currentTime+dur);
-  }catch(e){}
-}
-function playBallSound(){
-  playBeep(880,0.05,'sine');
-  setTimeout(()=>playBeep(1100,0.1,'triangle'),60);
-}
-function playWinnerSound(){
-  [523,659,784,1047].forEach((f,i)=>setTimeout(()=>playBeep(f,0.3,'square'),i*120));
-}
-
-// ─── Router ─────────────────────────────────
-function goTo(view){
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  document.getElementById('view-'+view).classList.add('active');
-  if(view==='admin'||view==='public'){
-    renderAll();
-    if(state.winner) showWinner(state.winner);
-  }
-}
-
-// ─── Auth ────────────────────────────────────
-let authReady = false;
-let currentUser = null;
-
-function goToAdmin(){
-  if(!db){
-    showToast('Conectando con Firebase, espera un momento…','error');
-    return;
-  }
-  if(currentUser){
-    goTo('admin');
-  } else {
-    goTo('login');
-  }
-}
-function doLogin(){
-  const email = document.getElementById('login-email').value.trim();
-  const pass  = document.getElementById('login-password').value;
-  const errEl = document.getElementById('login-error');
-  errEl.style.display = 'none';
-  if(!firebase.apps.length || !firebase.auth){
-    errEl.textContent = 'Configura Firebase primero.';
-    errEl.style.display = 'block';
-    return;
-  }
-  firebase.auth().signInWithEmailAndPassword(email, pass)
-    .then(cred=>{
-      if(cred.user.uid !== ADMIN_UID){
-        firebase.auth().signOut();
-        errEl.textContent = 'Esta cuenta no tiene permisos de administrador.';
-        errEl.style.display = 'block';
-        return;
-      }
-      currentUser = cred.user;
-      showToast('Bienvenido, '+(cred.user.email||'admin'),'success');
-      goTo('admin');
-    })
-    .catch(err=>{
-      errEl.textContent = traduceAuthError(err.code);
-      errEl.style.display = 'block';
-    });
-}
-function traduceAuthError(code){
-  const map = {
-    'auth/invalid-email':'Correo inválido.',
-    'auth/user-not-found':'Usuario no encontrado.',
-    'auth/wrong-password':'Contraseña incorrecta.',
-    'auth/invalid-credential':'Credenciales incorrectas.',
-    'auth/too-many-requests':'Demasiados intentos. Intenta más tarde.',
-  };
-  return map[code] || ('Error al iniciar sesión ('+code+')');
-}
-function doLogout(){
-  if(firebase.apps.length && firebase.auth){
-    firebase.auth().signOut().then(()=>{
-      currentUser = null;
-      goTo('home');
-    });
-  } else {
-    currentUser = null;
-    goTo('home');
-  }
-}
-function watchAuthState(){
-  if(!firebase.apps.length) return;
-  firebase.auth().onAuthStateChanged(user=>{
-    if(user && user.uid === ADMIN_UID){
-      currentUser = user;
-      watchAdminConfig(); // solo el admin autenticado puede leer la config forzada
-    } else {
-      currentUser = null;
-      adminConfig = { forcedLine: null, forcedRoulette: null };
-      if(configRef){ configRef.off(); configRef = null; }
-      if(user){
-        // Logged in but not the authorized admin
-        firebase.auth().signOut();
-        showToast('Esta cuenta no tiene permisos de administrador','error');
-      }
-    }
-  });
-}
-
-// ─── Config secreta (línea/ruleta forzada) ──────
-function watchAdminConfig(){
-  if(!db || !currentUser) return;
-  configRef = db.ref(FB_CONFIG_PATH);
-  configRef.on('value', snap=>{
-    const data = snap.val();
-    adminConfig = { forcedLine: (data&&data.forcedLine)||null, forcedRoulette: (data&&data.forcedRoulette)||null };
-    renderAdminConfigPanel();
-  });
-}
-function saveAdminConfig(){
-  if(!currentUser || !configRef){ showToast('Inicia sesión de admin para guardar esto.','error'); return; }
-  const fl = document.getElementById('sel-forced-line').value;
-  const fr = document.getElementById('sel-forced-roulette').value;
-  adminConfig.forcedLine = fl ? parseInt(fl) : null;
-  adminConfig.forcedRoulette = fr ? parseInt(fr) : null;
-  configRef.set(adminConfig).then(()=>{
-    showToast('Configuración guardada (no visible al público)','success');
-    renderAdminConfigPanel();
-  }).catch(e=>showToast('Error guardando config: '+e.message,'error'));
-}
-function clearAdminConfig(){
-  adminConfig = { forcedLine: null, forcedRoulette: null };
-  if(configRef) configRef.set(adminConfig);
-  renderAdminConfigPanel();
-  showToast('Configuración forzada desactivada','success');
-}
-function renderAdminConfigPanel(){
-  const selL = document.getElementById('sel-forced-line');
-  const selR = document.getElementById('sel-forced-roulette');
-  if(selL) selL.value = adminConfig.forcedLine || '';
-  if(selR) selR.value = adminConfig.forcedRoulette || '';
-  const badge = document.getElementById('forced-config-badge');
-  if(badge){
-    const active = adminConfig.forcedLine || adminConfig.forcedRoulette;
-    badge.style.display = active ? 'block' : 'none';
-    if(active){
-      badge.textContent = `⚠️ Activo: ${adminConfig.forcedLine ? 'Línea '+adminConfig.forcedLine+' ganará' : 'Línea aleatoria'}${adminConfig.forcedRoulette ? ' · Ruleta caerá en '+adminConfig.forcedRoulette : ' · Ruleta aleatoria'} (se usa 1 vez y se desactiva sola)`;
-    }
-  }
-}
-
-// ─── Firebase Setup ─────────────────────────
-function openFirebaseConfig(){
-  const saved = localStorage.getItem('bl-firebase-config');
-  if(saved) document.getElementById('firebase-config-input').value = saved;
-  openModal('firebase-modal');
-}
-function applyFirebaseConfig(){
-  let raw = document.getElementById('firebase-config-input').value.trim();
-  try{
-    const cfg = JSON.parse(raw);
-    if(!cfg.databaseURL) throw new Error('Falta databaseURL');
-    localStorage.setItem('bl-firebase-config', raw);
-    initFirebase(cfg);
-    closeModal('firebase-modal');
-    showToast('Firebase conectado ✓','success');
-  }catch(e){
-    showToast('Config inválida: '+e.message,'error');
-  }
-}
-function useOfflineMode(){
-  offlineMode = true;
-  db = null;
-  closeModal('firebase-modal');
-  document.getElementById('firebase-status').textContent = '📴 Modo offline (demo) – sin sincronización en tiempo real';
-  showToast('Modo demo activo','success');
-}
-function initFirebase(cfg){
-  try{
-    // If already initialized, reuse
-    if(firebase.apps.length){
-      firebase.app().delete().then(()=>doInitFirebase(cfg));
-    } else {
-      doInitFirebase(cfg);
-    }
-  }catch(e){ showToast('Error Firebase: '+e.message,'error'); }
-}
-function doInitFirebase(cfg){
-  try{
-    firebase.initializeApp(cfg);
-    db = firebase.database();
-    firebaseRef = db.ref(FB_PATH);
-    // Listen for remote changes
-    let firstSnapshot = true;
-    firebaseRef.on('value', snap=>{
-      const data = snap.val();
-      if(data){
-        state = {...state, ...data};
-        if(!data.lines) state.lines = Array.from({length:15},()=>({name:'',phone:'',notes:'',status:'free'}));
-        if(!data.balls) state.balls = [];
-        if(!data.history) state.history = [];
-        if(!data.roundsArchive) state.roundsArchive = [];
-        renderAll();
-        if(firstSnapshot){
-          // En la PRIMERA sincronización (recién se abrió la página) no
-          // reproducimos el overlay de ganador/ruleta de una ronda anterior
-          // que haya quedado sin cerrar: solo "marcamos como ya vistos" esos
-          // resultados. Así evitamos que la ruleta/ganador se disparen solos
-          // al entrar a la página.
-          firstSnapshot = false;
-          lastWinnerTs = state.winner ? state.winner.ts : 0;
-          lastRouletteTs = state.roulette ? state.roulette.ts : 0;
-        } else {
-          checkWinnerDisplay();
-          checkRouletteDisplay();
-        }
-      }
-    });
-    document.getElementById('firebase-status').textContent = '🟢 Firebase conectado';
-    showToast('Firebase listo ✓','success');
-    watchAuthState();
-  }catch(e){ showToast('Error al inicializar: '+e.message,'error'); }
-}
-function saveToFirebase(){
-  if(offlineMode || !db) { renderAll(); checkWinnerDisplay(); checkRouletteDisplay(); return; }
-  firebaseRef.set(state).catch(e=>showToast('Error guardando: '+e.message,'error'));
-}
-
-// ─── State Init ─────────────────────────────
-function tryLoadSaved(){
-  const saved = localStorage.getItem('bl-state');
-  if(saved){
-    try{
-      const p = JSON.parse(saved);
-      state = {...state, ...p};
-      if(!state.lines||state.lines.length!==15)
-        state.lines = Array.from({length:15},()=>({name:'',phone:'',notes:'',status:'free'}));
-      if(!state.roundsArchive) state.roundsArchive = [];
-    }catch(e){}
-  }
-  // Auto-connect to preconfigured Firebase project
-  initFirebase(FIREBASE_CONFIG);
-}
-
-function saveLocal(){
-  localStorage.setItem('bl-state', JSON.stringify(state));
-}
-
-// ─── Ball Logic ─────────────────────────────
-// Line i (0-indexed): balls are [i+1, i+16, i+31, i+46, i+61]
-function getBallsForLine(lineIdx){
-  const i = lineIdx; // 0-based
-  return [i+1, i+16, i+31, i+46, i+61];
-}
-
-function drawBall(){
-  if(state.status !== 'active') return;
-  if(state.balls.length >= 75){ showToast('Ya se cantaron las 75 balotas','error'); return; }
-
-  // Build pool of remaining balls
-  if(remainingBalls.length === 0){
-    const all = Array.from({length:75},(_,i)=>i+1);
-    const drawn = new Set(state.balls);
-    remainingBalls = all.filter(b=>!drawn.has(b));
-    // Shuffle
-    for(let i=remainingBalls.length-1;i>0;i--){
-      const j=Math.floor(Math.random()*(i+1));
-      [remainingBalls[i],remainingBalls[j]]=[remainingBalls[j],remainingBalls[i]];
-    }
-  }
-
-  const ball = remainingBalls.pop();
-  state.balls = [...state.balls, ball];
-  saveToFirebase();
-  saveLocal();
-  playBallSound();
-  renderAll();
-  checkWinner();
-}
-
-function shuffleRemaining(){
-  const all = Array.from({length:75},(_,i)=>i+1);
-  const drawn = new Set(state.balls);
-  remainingBalls = all.filter(b=>!drawn.has(b));
-  for(let i=remainingBalls.length-1;i>0;i--){
-    const j=Math.floor(Math.random()*(i+1));
-    [remainingBalls[i],remainingBalls[j]]=[remainingBalls[j],remainingBalls[i]];
-  }
-}
-
-// Baraja el mazo garantizando que `lineIdx` (0-based) sea la primera línea
-// en completarse, sin que otra línea gane antes. El orden se ve azaroso:
-// las balotas de la línea forzada se reparten en posiciones aleatorias,
-// y ninguna otra línea recibe sus 5 balotas antes del punto de corte.
-function buildForcedOrder(lineIdx){
-  const forcedBalls = getBallsForLine(lineIdx); // 5 balotas de la línea a forzar
-  const forcedSet = new Set(forcedBalls);
-  const otherLines = []; // balotas de las otras 14 líneas
-  for(let i=0;i<15;i++){ if(i!==lineIdx) otherLines.push(getBallsForLine(i)); }
-
-  // Por cada línea rival, reservamos 1 balota "bloqueadora" que solo puede
-  // salir DESPUÉS del corte, así nunca junta sus 5 balotas antes de tiempo.
-  const blockers = [];
-  const freePool = []; // hasta 4 balotas por línea rival, libres de usar antes o después
-  otherLines.forEach(balls=>{
-    const shuffled = [...balls].sort(()=>Math.random()-0.5);
-    blockers.push(shuffled[0]);
-    freePool.push(...shuffled.slice(1));
-  });
-  // Mezclar freePool
-  for(let i=freePool.length-1;i>0;i--){
-    const j=Math.floor(Math.random()*(i+1));
-    [freePool[i],freePool[j]]=[freePool[j],freePool[i]];
-  }
-
-  // Punto de corte K = posición (1-indexada) donde cae la 5ª balota forzada.
-  // Se elige entre 18 y 55 para que no gane ni demasiado pronto ni al final.
-  const minK = 18, maxK = Math.min(55, 5 + freePool.length);
-  const K = Math.floor(Math.random()*(maxK-minK+1))+minK;
-  const beforeOtherCount = Math.max(0, K-5);
-  const beforePool = freePool.slice(0, beforeOtherCount);
-  const afterPool  = freePool.slice(beforeOtherCount).concat(blockers);
-  for(let i=afterPool.length-1;i>0;i--){
-    const j=Math.floor(Math.random()*(i+1));
-    [afterPool[i],afterPool[j]]=[afterPool[j],afterPool[i]];
-  }
-
-  // Primeras K-1 posiciones: 4 balotas forzadas + beforePool, mezcladas.
-  const forced4 = forcedBalls.slice(0,4);
-  const lastForced = forcedBalls[4];
-  const firstChunk = [...forced4, ...beforePool];
-  for(let i=firstChunk.length-1;i>0;i--){
-    const j=Math.floor(Math.random()*(i+1));
-    [firstChunk[i],firstChunk[j]]=[firstChunk[j],firstChunk[i]];
-  }
-
-  const order = [...firstChunk, lastForced, ...afterPool];
-  // drawBall() extrae con .pop(), así que invertimos: el último del array
-  // es el primero en salir.
-  remainingBalls = order.slice().reverse();
-}
-
-// ─── Winner Detection ───────────────────────
-function checkWinner(){
-  const calledSet = new Set(state.balls);
-  for(let i=0;i<15;i++){
-    const lineBalls = getBallsForLine(i);
-    if(lineBalls.every(b=>calledSet.has(b))){
-      // Check we haven't already announced this winner
-      if(state.winner && state.winner.lineIdx === i) continue;
-      if(state.status === 'finished') continue;
-      // WINNER!
-      pauseAutoMode();
-      state.winner = {
-        lineIdx: i,
-        name: state.lines[i].name || `Línea ${i+1}`,
-        prize: state.prize,
-        ts: Date.now()
-      };
-      state.status = 'finished';
-      state.roulette = null; // limpiar resultado de ruleta de la ronda anterior
-      saveToFirebase();
-      saveLocal();
-      renderAll();
-      saveHistory();
-      // La ruleta YA NO gira sola: el admin la dispara a mano con el botón
-      // "🎡 Ir a la Ruleta" que aparece en el overlay de ganador (ver
-      // updateWinnerRouletteButton / goToRouletteFromWinner).
-      return;
-    }
-  }
-}
-// Gira la ruleta 1-15. Si hay un número forzado configurado, se usa (y se
-// desactiva automáticamente); si no, sale un número al azar.
-function spinRoulette(){
-  if(rouletteSpinTimeout){ clearTimeout(rouletteSpinTimeout); rouletteSpinTimeout=null; }
-  if(!state.winner || state.roulette) return;
-  let number;
-  let wasForced = false;
-  if(adminConfig.forcedRoulette){
-    number = adminConfig.forcedRoulette;
-    wasForced = true;
-    adminConfig.forcedRoulette = null;
-    if(configRef) configRef.set(adminConfig);
-    renderAdminConfigPanel();
-  } else {
-    number = Math.floor(Math.random()*15)+1;
-  }
-  const wonAccum = number === (state.winner.lineIdx+1);
-  state.roulette = { number, ts: Date.now(), wonAccum };
-  if(wonAccum) state.accumWon = true;
-  saveToFirebase();
-  saveLocal();
-  renderAll();
-  updateHistoryWithRoulette();
-  if(wasForced) showToast('Ruleta girada con número forzado (se desactivó automáticamente)','success');
-}
-function checkWinnerDisplay(){
-  // Called after every state update (local or remote). Shows winner overlay
-  // on EVERY connected client (admin + público en sala).
-  if(state.winner && state.winner.ts && state.winner.ts !== lastWinnerTs){
-    lastWinnerTs = state.winner.ts;
-    showWinner(state.winner);
-    playWinnerSound();
-  }
-  if(!state.winner){
-    const wo = document.getElementById('winner-overlay');
-    if(wo) wo.classList.remove('open');
-  }
-}
-function checkRouletteDisplay(){
-  // Igual que checkWinnerDisplay: se ejecuta en TODOS los clientes cuando
-  // llega un resultado de ruleta nuevo (ts distinto), y dispara la
-  // animación de giro en vivo hasta caer en el número ya decidido.
-  if(state.roulette && state.roulette.ts && state.roulette.ts !== lastRouletteTs){
-    lastRouletteTs = state.roulette.ts;
-    showRoulette(state.roulette);
-  }
-  if(!state.roulette){
-    const ro = document.getElementById('roulette-overlay');
-    if(ro) ro.classList.remove('open');
-  }
-}
-
-// ─── Auto Mode ──────────────────────────────
-function toggleAuto(){
-  if(!autoActive){
-    startAutoMode();
-  } else {
-    pauseAutoMode();
-  }
-}
-function startAutoMode(){
-  if(state.status !== 'active') return;
-  shuffleRemaining();
-  autoActive = true;
-  const speed = parseInt(document.getElementById('sel-speed').value) || 3000;
-  autoInterval = setInterval(()=>{
-    if(state.status !== 'active'){ pauseAutoMode(); return; }
-    if(state.balls.length >= 75){ pauseAutoMode(); return; }
-    drawBall();
-  }, speed);
-  document.getElementById('btn-auto').classList.add('active');
-  document.getElementById('auto-label').textContent = '⛔ Detener Auto';
-}
-function pauseAutoMode(){
-  autoActive = false;
-  clearInterval(autoInterval);
-  autoInterval = null;
-  const btn = document.getElementById('btn-auto');
-  if(btn){ btn.classList.remove('active'); }
-  const lbl = document.getElementById('auto-label');
-  if(lbl) lbl.textContent = 'Modo Automático';
-}
-function updateSpeed(){
-  if(autoActive){ pauseAutoMode(); startAutoMode(); }
-}
-
-// ─── Game Controls ───────────────────────────
-function startGame(){
-  state.status = 'active';
-  if(adminConfig.forcedLine){
-    buildForcedOrder(adminConfig.forcedLine-1);
-    roundForcedLine = adminConfig.forcedLine; // se consume: solo aplica a esta ronda
-    adminConfig.forcedLine = null;
-    if(configRef) configRef.set(adminConfig);
-    renderAdminConfigPanel();
-    showToast('Ronda iniciada con línea forzada (se desactivó automáticamente)','success');
-  } else {
-    shuffleRemaining();
-    showToast('¡Juego iniciado!','success');
-  }
-  saveToFirebase(); saveLocal();
-  renderAll();
-}
-function pauseGame(){
-  pauseAutoMode();
-  state.status = 'paused';
-  saveToFirebase(); saveLocal();
-  renderAll();
-}
-function resumeGame(){
-  state.status = 'active';
-  saveToFirebase(); saveLocal();
-  renderAll();
-}
-function stopGame(){
-  pauseAutoMode();
-  state.status = 'finished';
-  saveToFirebase(); saveLocal();
-  renderAll();
-  showToast('Juego finalizado','error');
-}
-function confirmReset(){
-  if(!confirm('¿Reiniciar el tablero? Se borrarán las balotas cantadas.')) return;
-  resetBoard();
-}
-function resetBoard(){
-  pauseAutoMode();
-  if(rouletteSpinTimeout){ clearTimeout(rouletteSpinTimeout); rouletteSpinTimeout=null; }
-  state.balls = [];
-  state.winner = null;
-  state.roulette = null;
-  state.status = 'idle';
-  remainingBalls = [];
-  closeRouletteOverlay();
-  saveToFirebase(); saveLocal();
-  renderAll();
-  showToast('Tablero reiniciado','success');
-}
-function getHistoryEntries(){
-  const archive = state.roundsArchive||[];
-  const hist = state.history||[];
-  const usedRounds = new Set();
-  const entries = archive.map(a=>{
-    usedRounds.add(String(a.round));
-    const h = hist.find(x=>String(x.round)===String(a.round));
-    return { archiveId:a.id, round:a.round, date:a.date, time:a.time, lines:a.lines, hist:h||null };
-  });
-  hist.forEach(h=>{
-    if(!usedRounds.has(String(h.round))){
-      entries.push({ archiveId:null, round:h.round, date:h.date, time:h.time, lines:null, hist:h });
-    }
-  });
-  entries.sort((a,b)=> (parseInt(b.round)||0) - (parseInt(a.round)||0));
-  return entries;
-}
-function openRoundDetail(archiveIdRaw, round){
-  const archiveId = archiveIdRaw ? parseInt(archiveIdRaw) : null;
-  const entry = archiveId ? (state.roundsArchive||[]).find(a=>a.id===archiveId) : null;
-  const h = (state.history||[]).find(x=>String(x.round)===String(round));
-  document.getElementById('archive-round-num').textContent = round;
-  document.getElementById('modal-archive-current-id').value = archiveId || '';
-  document.getElementById('modal-archive-current-round').value = round;
-
-  const winnerEl = document.getElementById('archive-winner-info');
-  if(h){
-    winnerEl.innerHTML = `🏆 Ganador: <strong>${h.winner}</strong>${h.line && h.line!=='—' ? ' · '+h.line : ''}<br>💰 Premio: ${h.prize}${h.roulette ? `<br>🎡 Ruleta: ${h.roulette}${h.wonAccum ? ' · 🤑 ¡Ganó el Acumulado!' : ''}` : ''}`;
-    winnerEl.style.display = 'block';
-  } else {
-    winnerEl.innerHTML = '';
-    winnerEl.style.display = 'none';
-  }
-
-  const linesEl = document.getElementById('archive-lines-list');
-  if(entry){
-    const statusIcon = {free:'⬜',pending:'❌',paid:'✅'};
-    linesEl.innerHTML = entry.lines.map((l,i)=>`
-      <div onclick="openLineModal(${i}, ${archiveId})" style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 12px;cursor:pointer;">
-        <span style="font-size:13px;">${statusIcon[l.status||'free']} Línea ${i+1}: ${l.name ? l.name : '<span style="color:var(--gray)">vacía</span>'}</span>
-        <span style="font-size:11px;color:var(--gray);">${l.phone||''}</span>
-      </div>
-    `).join('');
-  } else {
-    linesEl.innerHTML = '<p style="color:var(--gray);font-size:12px;">No hay datos de jugadores guardados para esta ronda.</p>';
-  }
-  openModal('archive-modal');
-}
-function deleteRoundFromHistory(){
-  const archiveIdRaw = document.getElementById('modal-archive-current-id').value;
-  const round = document.getElementById('modal-archive-current-round').value;
-  const archiveId = archiveIdRaw ? parseInt(archiveIdRaw) : null;
-  if(!confirm(`¿Eliminar del historial la Ronda ${round}? Esta acción no se puede deshacer.`)) return;
-  state.roundsArchive = (state.roundsArchive||[]).filter(a=>a.id!==archiveId);
-  state.history = (state.history||[]).filter(h=>String(h.round)!==String(round));
-  saveToFirebase(); saveLocal();
-  closeModal('archive-modal');
-  renderHistory();
-  showToast('Ronda eliminada del historial','success');
-}
-function clearAllHistory(){
-  if(!(state.roundsArchive||[]).length && !(state.history||[]).length){
-    showToast('El historial ya está vacío','error');
-    return;
-  }
-  if(!confirm('¿Limpiar TODO el historial de rondas? Esta acción no se puede deshacer.')) return;
-  state.roundsArchive = [];
-  state.history = [];
-  saveToFirebase(); saveLocal();
-  renderHistory();
-  showToast('Historial limpiado por completo','success');
-}
-
-function newRound(){
-  const hasParticipants = state.lines.some(l=>l.name && l.name.trim()!=='');
-  if(hasParticipants && !confirm(
-    `Esto archivará la lista de participantes de la Ronda ${state.round} (la podrás ver/editar en Historial) y comenzará la Ronda ${(parseInt(state.round)||1)+1} con líneas vacías.\n\n¿Deseas continuar?`
-  )) return;
-  pauseAutoMode();
-  if(rouletteSpinTimeout){ clearTimeout(rouletteSpinTimeout); rouletteSpinTimeout=null; }
-  const accumWon = state.accumWon;
-  // Archive a snapshot of this round's participants before wiping them
-  if(hasParticipants){
-    state.roundsArchive = [{
-      id: Date.now(),
-      round: state.round,
-      date: new Date().toLocaleDateString('es-CO'),
-      time: new Date().toLocaleTimeString('es-CO'),
-      lines: JSON.parse(JSON.stringify(state.lines)),
-    }, ...(state.roundsArchive||[])].slice(0,50);
-  }
-  state.balls = [];
-  state.winner = null;
-  state.roulette = null;
-  state.status = 'idle';
-  state.lines = Array.from({length:15},()=>({name:'',phone:'',notes:'',status:'free'}));
-  state.round = (parseInt(state.round)||1) + 1;
-  if(accumWon) state.accum = '$0';
-  state.accumWon = false;
-  remainingBalls = [];
-  closeRouletteOverlay();
-  document.getElementById('inp-round').value = state.round;
-  saveToFirebase(); saveLocal();
-  renderAll();
-  showToast(`Nueva Ronda ${state.round} iniciada`,'success');
-}
-function saveRoundInfo(){
-  state.round   = parseInt(document.getElementById('inp-round').value)||1;
-  state.price   = document.getElementById('inp-price').value;
-  state.prize   = document.getElementById('inp-prize').value;
-  state.accum   = document.getElementById('inp-accum').value;
-  saveToFirebase(); saveLocal();
-  renderAll();
-  showToast('Información guardada','success');
-}
-
-// ─── History ────────────────────────────────
-function saveHistory(){
-  const now = new Date();
-  const entry = {
-    date: now.toLocaleDateString('es-CO'),
-    time: now.toLocaleTimeString('es-CO'),
-    round: state.round,
-    winner: state.winner ? state.winner.name : '—',
-    line: state.winner ? `Línea ${state.winner.lineIdx+1}` : '—',
-    prize: state.prize,
-    balls: state.balls.length,
-    roulette: null,
-    wonAccum: false,
-  };
-  state.history = [entry, ...(state.history||[])].slice(0,50);
-  saveToFirebase(); saveLocal();
-}
-// Se llama cuando la ruleta ya giró: completa el registro de historial de
-// esta ronda (que se guardó antes, apenas se supo el ganador) con el
-// resultado de la ruleta y si se llevó el acumulado.
-function updateHistoryWithRoulette(){
-  if(!state.history || !state.history.length || !state.roulette) return;
-  state.history[0].roulette = state.roulette.number;
-  state.history[0].wonAccum = !!state.roulette.wonAccum;
-  saveToFirebase(); saveLocal();
-}
-
-// ─── Lines CRUD ─────────────────────────────
-// archiveId: null = current/live round. Otherwise edits a past round's archived snapshot.
-async function pickContact(){
-  if(!('contacts' in navigator && 'ContactsManager' in window)){
-    showToast('Tu navegador no soporta acceso a contactos. Usa Chrome en Android.','error');
-    return;
-  }
-  try{
-    const props = ['name','tel'];
-    const opts = {multiple:false};
-    const contacts = await navigator.contacts.select(props, opts);
-    if(contacts && contacts.length){
-      const c = contacts[0];
-      if(c.name && c.name.length) document.getElementById('modal-name').value = c.name[0];
-      if(c.tel && c.tel.length) document.getElementById('modal-phone').value = c.tel[0];
-    }
-  }catch(err){
-    console.error('Error al leer contacto:', err);
-    showToast('No se pudo acceder a los contactos.','error');
-  }
-}
-function openLineModal(idx, archiveId=null){
-  const l = archiveId
-    ? state.roundsArchive.find(a=>a.id===archiveId).lines[idx]
-    : state.lines[idx];
-  document.getElementById('modal-line-idx').value = idx;
-  document.getElementById('modal-archive-id').value = archiveId || '';
-  document.getElementById('modal-line-num').textContent = idx+1;
-  document.getElementById('modal-name').value = l.name||'';
-  document.getElementById('modal-phone').value = l.phone||'';
-  document.getElementById('modal-notes').value = l.notes||'';
-  const radios = document.querySelectorAll('input[name=pay-status]');
-  radios.forEach(r=>r.checked = r.value===(l.status||'free'));
-  openModal('line-modal');
-}
-function saveLine(){
-  const idx = parseInt(document.getElementById('modal-line-idx').value);
-  const archiveIdRaw = document.getElementById('modal-archive-id').value;
-  const archiveId = archiveIdRaw ? parseInt(archiveIdRaw) : null;
-  const status = document.querySelector('input[name=pay-status]:checked')?.value || 'free';
-  const newLine = {
-    name: document.getElementById('modal-name').value.trim(),
-    phone: document.getElementById('modal-phone').value.trim(),
-    notes: document.getElementById('modal-notes').value.trim(),
-    status,
-  };
-  if(archiveId){
-    const entry = state.roundsArchive.find(a=>a.id===archiveId);
-    if(entry) entry.lines[idx] = newLine;
-  } else {
-    state.lines[idx] = newLine;
-  }
-  saveToFirebase(); saveLocal();
-  renderAll();
-  closeModal('line-modal');
-  showToast(`Línea ${idx+1} actualizada`,'success');
-}
-function deleteLine(){
-  const idx = parseInt(document.getElementById('modal-line-idx').value);
-  const archiveIdRaw = document.getElementById('modal-archive-id').value;
-  const archiveId = archiveIdRaw ? parseInt(archiveIdRaw) : null;
-  const emptyLine = {name:'',phone:'',notes:'',status:'free'};
-  if(archiveId){
-    const entry = state.roundsArchive.find(a=>a.id===archiveId);
-    if(entry) entry.lines[idx] = emptyLine;
-  } else {
-    state.lines[idx] = emptyLine;
-  }
-  saveToFirebase(); saveLocal();
-  renderAll();
-  closeModal('line-modal');
-  showToast(`Línea ${idx+1} liberada`,'success');
-}
-
-// ─── Admin Tabs ──────────────────────────────
-function switchAdminTab(tab){
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
-  document.getElementById('admtab-btn-'+tab).classList.add('active');
-  document.getElementById('admtab-'+tab).classList.add('active');
-}
-
-// ─── Render ──────────────────────────────────
-function renderAll(){
-  renderInfoBars();
-  renderBoard('board-grid');
-  renderBoard('p-board-grid');
-  renderCurrentBall();
-  renderLines();
-  renderPubLines();
-  renderHistory();
-  syncInputs();
-  updateButtons();
-  renderAdminConfigPanel();
-  updateWinnerRouletteButton();
-}
-
-function syncInputs(){
-  const inp = v=>{ try{return document.getElementById(v);}catch(e){return null;} };
-  if(inp('inp-round')) inp('inp-round').value = state.round;
-  if(inp('inp-price')) inp('inp-price').value = state.price;
-  if(inp('inp-prize')) inp('inp-prize').value = state.prize;
-  if(inp('inp-accum')) inp('inp-accum').value = state.accum;
-}
-
-function renderInfoBars(){
-  const s = state;
-  // Admin
-  const ar = document.getElementById('a-round');
-  if(ar) ar.textContent = s.round;
-  const ab = document.getElementById('a-state-badge');
-  if(ab){ ab.className='state-badge'; ab.className+=' '+stateClass(s.status); ab.textContent=stateLabel(s.status); }
-  // Public
-  const pr = document.getElementById('p-round');
-  if(pr) pr.textContent = s.round;
-  const pb = document.getElementById('p-state-badge');
-  if(pb){ pb.className='state-badge'; pb.className+=' '+stateClass(s.status); pb.textContent=stateLabel(s.status); }
-  const pp = document.getElementById('p-prize');
-  if(pp) pp.textContent = s.prize||'$0';
-  const pa = document.getElementById('p-accum');
-  if(pa) pa.textContent = s.accum||'$0';
-  const ppr = document.getElementById('p-price');
-  if(ppr) ppr.textContent = s.price||'$0';
-}
-function stateClass(st){
-  return {idle:'state-idle',active:'state-active',paused:'state-paused',finished:'state-finished'}[st]||'state-idle';
-}
-function stateLabel(st){
-  return {idle:'Inactivo',active:'🟢 En Juego',paused:'⏸ Pausado',finished:'🏁 Finalizado'}[st]||st;
-}
-
-function renderBoard(gridId){
-  const grid = document.getElementById(gridId);
-  if(!grid) return;
-  const calledSet = new Set(state.balls);
-  const winnerLine = state.winner ? state.winner.lineIdx : -1;
-
-  // Build 15 rows × 5 cols
-  // Ball at row r (0-based), col c (0-based) = r+1 + c*15
-  const cells = [];
-  for(let r=0;r<15;r++){
-    for(let c=0;c<5;c++){
-      const num = r+1 + c*15;
-      const called = calledSet.has(num);
-      const winner = (winnerLine === r) && called;
-      const cls = winner ? 'ball-cell winner-line' : called ? 'ball-cell called' : 'ball-cell';
-      cells.push(`<div class="${cls}">${num}</div>`);
-    }
-  }
-  grid.innerHTML = cells.join('');
-}
-
-function renderCurrentBall(){
-  const calledBalls = state.balls;
-  const current = calledBalls.length > 0 ? calledBalls[calledBalls.length-1] : null;
-  const count = calledBalls.length;
-  const recent = calledBalls.slice(-5,-1).reverse();
-
-  // Admin
-  const ad = document.getElementById('current-ball-display');
-  if(ad){
-    if(current){ ad.className='current-ball'; ad.textContent=current; }
-    else{ ad.className='current-ball empty'; ad.textContent='–'; }
-  }
-  const ac = document.getElementById('ball-count');
-  if(ac) ac.textContent = count;
-  const ar = document.getElementById('recent-balls-display');
-  if(ar) ar.innerHTML = recent.map(b=>`<div class="recent-ball">${b}</div>`).join('');
-
-  // Public
-  const pd = document.getElementById('p-current-ball');
-  if(pd){
-    if(current){ pd.className='current-ball'; pd.textContent=current; }
-    else{ pd.className='current-ball empty'; pd.textContent='–'; }
-  }
-  const pc = document.getElementById('p-ball-count');
-  if(pc) pc.textContent = count;
-  const pr = document.getElementById('p-recent-balls');
-  if(pr) pr.innerHTML = recent.map(b=>`<div class="recent-ball">${b}</div>`).join('');
-}
-
-function renderLines(){
-  const el = document.getElementById('lines-admin');
-  if(!el) return;
-  const calledSet = new Set(state.balls);
-  const winnerLine = state.winner ? state.winner.lineIdx : -1;
-  el.innerHTML = state.lines.map((l,i)=>{
-    const balls = getBallsForLine(i);
-    const hits = balls.filter(b=>calledSet.has(b)).length;
-    const statusCls = l.status==='paid'?'paid':l.status==='pending'?'pending':'free';
-    const winCls = winnerLine===i ? ' winner' : '';
-    const statusLabel = l.status==='paid'?'<span class="line-status status-paid">✅ Pagó</span>':
-      l.status==='pending'?'<span class="line-status status-pending">❌ Pendiente</span>':
-      '<span class="line-status status-free">⬜ Libre</span>';
-    return `<div class="line-item ${statusCls}${winCls}" onclick="openLineModal(${i})">
-      <div class="line-num">${i+1}</div>
-      <div class="line-info">
-        <div class="line-name">${l.name||`Línea ${i+1}`}</div>
-        <div class="line-balls">${balls.join(' · ')} | Hits: ${hits}/5</div>
-      </div>
-      ${statusLabel}
-    </div>`;
-  }).join('');
-}
-
-function renderPubLines(){
-  const el = document.getElementById('p-lines-display');
-  if(!el) return;
-  const calledSet = new Set(state.balls);
-  const winnerLine = state.winner ? state.winner.lineIdx : -1;
-  el.innerHTML = state.lines.map((l,i)=>{
-    const balls = getBallsForLine(i);
-    const hits = balls.filter(b=>calledSet.has(b)).length;
-    const winCls = winnerLine===i ? ' winner' : '';
-    const dots = balls.map((b,di)=>{
-      const hit = calledSet.has(b);
-      const winDot = hit && winnerLine===i;
-      return `<div class="prog-dot ${hit?'hit':''}${winDot?' win':''}"></div>`;
-    }).join('');
-    return `<div class="pub-line${winCls}">
-      <div class="pub-line-num">${i+1}</div>
-      <div class="pub-line-info">
-        <div class="pub-line-name">${l.name || `Línea ${i+1}`}</div>
-        <div class="pub-line-balls" style="font-size:10px;color:var(--gray);">${balls.join('·')}</div>
-      </div>
-      <div class="pub-line-progress">${dots}</div>
-    </div>`;
-  }).join('');
-}
-
-function renderHistory(){
-  const el = document.getElementById('history-list');
-  if(!el) return;
-  const entries = getHistoryEntries();
-  if(!entries.length){
-    el.innerHTML = '<p style="color:var(--gray);font-size:12px;">Sin partidas registradas.</p>';
-    return;
-  }
-  el.innerHTML = entries.map(e=>{
-    const playerCount = e.lines ? e.lines.filter(l=>l.name && l.name.trim()!=='').length : null;
-    const h = e.hist;
-    const winnerTxt = h ? `${h.winner && h.winner!=='—' ? h.winner : 'Sin ganador'}${h.line && h.line!=='—' ? ' · '+h.line : ''}` : 'Sin datos';
-    return `
-    <div class="history-card" onclick="openRoundDetail('${e.archiveId||''}','${e.round}')" style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px 12px;margin-bottom:6px;cursor:pointer;">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-        <span style="font-size:12px;font-weight:600;">Ronda ${e.round} <span style="color:var(--gray);font-weight:400;">(${e.date} ${e.time||''})</span></span>
-        <span style="font-size:11px;color:var(--gold);white-space:nowrap;">Ver detalle ›</span>
-      </div>
-      <div style="margin-top:6px;font-size:11px;color:var(--gray);display:flex;flex-wrap:wrap;gap:10px;">
-        ${playerCount!==null ? `<span>🧍 Jugadores: ${playerCount}/15</span>` : ''}
-        <span>🏆 Ganador: ${winnerTxt}</span>
-        ${h ? `<span>💰 Premio: ${h.prize}</span>` : ''}
-        ${h && h.roulette ? `<span>🎡 Ruleta: ${h.roulette}${h.wonAccum ? ' · 🤑 ¡Ganó el Acumulado!' : ''}</span>` : ''}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function updateButtons(){
-  const s = state.status;
-  const setBtn = (id, disabled)=>{ const b=document.getElementById(id); if(b) b.disabled=disabled; };
-  const show = (id, show)=>{ const b=document.getElementById(id); if(b) b.style.display=show?'':'none'; };
-
-  setBtn('btn-start',  s==='active'||s==='paused'||s==='finished');
-  setBtn('btn-pause',  s!=='active');
-  setBtn('btn-stop',   s==='idle'||s==='finished');
-  setBtn('btn-draw',   s!=='active');
-  setBtn('btn-auto',   s!=='active');
-
-  show('btn-pause', s!=='paused');
-  show('btn-resume', s==='paused');
-  setBtn('btn-resume', s!=='paused');
-
-  setBtn('btn-spin-roulette', !(state.winner && !state.roulette));
-}
-
-// ─── Winner UI ──────────────────────────────
-function showWinner(w){
-  document.getElementById('wo-line-label').textContent = `LÍNEA ${w.lineIdx+1}`;
-  document.getElementById('wo-name').textContent = w.name;
-  document.getElementById('wo-detail').textContent = `Ha completado su línea completa`;
-  document.getElementById('wo-prize').textContent = w.prize || state.prize;
-  document.getElementById('winner-overlay').classList.add('open');
-  spawnConfetti();
-  updateWinnerRouletteButton();
-}
-// Muestra los botones de admin (ir a ruleta / cerrar) SOLO en el
-// dispositivo del admin, y solo mientras haya un ganador pendiente.
-function updateWinnerRouletteButton(){
-  const btn = document.getElementById('wo-btn-roulette');
-  const skip = document.getElementById('wo-btn-skip');
-  const show = !!(isAdminContext() && state.winner && !state.roulette);
-  if(btn) btn.style.display = show ? 'block' : 'none';
-  if(skip) skip.style.display = show ? 'inline-block' : 'none';
-}
-function goToRouletteFromWinner(){
-  if(!isAdminContext()){ warnNotAdmin(); return; }
-  spinRoulette();
-}
-
-// ─── Roulette UI (sorteo del acumulado) ─────
-function showRoulette(r){
-  const overlay = document.getElementById('roulette-overlay');
-  const numEl = document.getElementById('reel-number');
-  const resEl = document.getElementById('ro-result');
-  resEl.style.display = 'none';
-  numEl.classList.remove('landed');
-  overlay.classList.add('open');
-
-  let ticks = 0;
-  const totalTicks = 24;
-  let delay = 60;
-  function tick(){
-    ticks++;
-    if(ticks < totalTicks){
-      numEl.textContent = Math.floor(Math.random()*15)+1;
-      playBallSound();
-      delay = delay * 1.15; // desacelera el giro
-      setTimeout(tick, delay);
-    } else {
-      numEl.textContent = r.number;
-      numEl.classList.add('landed');
-      revealRouletteResult(r);
-    }
-  }
-  tick();
-}
-function revealRouletteResult(r){
-  playWinnerSound();
-  const resEl = document.getElementById('ro-result');
-  const msgEl = document.getElementById('ro-msg');
-  const winLine = state.winner ? state.winner.lineIdx+1 : null;
-  resEl.style.display = 'block';
-  if(r.wonAccum){
-    msgEl.innerHTML = `🤑 ¡Coincide con la Línea ${winLine}!<br>Se lleva también el <strong>Acumulado</strong>: ${state.accum}`;
-    msgEl.style.color = 'var(--green2)';
-    spawnConfetti();
-  } else {
-    msgEl.innerHTML = `No coincidió con la Línea ganadora (${winLine}).<br>El Acumulado sigue creciendo para la próxima ronda.`;
-    msgEl.style.color = 'var(--gray)';
-  }
-  // Solo el admin ve "Terminar Ronda"; el público solo ve "Continuar".
-  const finishBtn = document.getElementById('ro-btn-finish');
-  const continueBtn = document.getElementById('ro-btn-continue');
-  const admin = isAdminContext();
-  if(finishBtn) finishBtn.style.display = admin ? 'inline-block' : 'none';
-  if(continueBtn) continueBtn.style.display = admin ? 'none' : 'inline-block';
-  updateWinnerRouletteButton();
-}
-function closeRouletteOverlay(){
-  document.getElementById('roulette-overlay').classList.remove('open');
-}
-// Botón admin "🏁 Terminar Ronda" / "✕ Cerrar": cierra AMBOS overlays de
-// verdad, borrando el ganador y el resultado de ruleta del estado
-// compartido (Firebase), para que no se vuelvan a abrir solos al volver a
-// entrar al panel. NO borra jugadores/balotas — eso lo hace "🆕 Nueva
-// Ronda" cuando el admin decide iniciar la siguiente ronda.
-function finishRoundView(){
-  if(!isAdminContext()){ warnNotAdmin(); return; }
-  state.winner = null;
-  state.roulette = null;
-  closeRouletteOverlay();
-  const wo = document.getElementById('winner-overlay');
-  if(wo) wo.classList.remove('open');
-  saveToFirebase();
-  saveLocal();
-  renderAll();
-  showToast('Ronda cerrada. Configura la siguiente ronda desde el panel.','success');
-}
-// Antes este chequeo exigía también `currentUser` (sesión de Firebase
-// Auth), pero eso depende de una resolución ASÍNCRONA que no está
-// garantizada a tiempo cuando se abre el overlay del ganador — y si
-// fallaba una sola vez, nada la volvía a intentar (la ronda queda
-// "finished" y ya no se generan más renders). Resultado: los botones de
-// salida quedaban invisibles para siempre. Se alinea ahora con el resto
-// de acciones del panel (Nueva Ronda, Girar Ruleta Ahora, Guardar), que
-// tampoco dependen de `currentUser`: basta con estar viendo el panel
-// admin, algo 100% sincrónico y confiable (para llegar aquí ya tuviste
-// que pasar por el login).
-function isAdminContext(){
-  const v = document.getElementById('view-admin');
-  return !!(v && v.classList.contains('active'));
-}
-// Avisa por qué se bloqueó una acción de admin, en vez de fallar en silencio.
-function warnNotAdmin(){
-  showToast('Esta acción es solo para el panel de administrador.','error');
-}
-function spawnConfetti(){
-  const wrap = document.getElementById('confetti-wrap');
-  wrap.innerHTML = '';
-  const colors = ['#FFD700','#C0392B','#27AE60','#8A2BE2','#FFFFFF','#FFA500'];
-  for(let i=0;i<80;i++){
-    const el = document.createElement('div');
-    el.className = 'confetti-piece';
-    el.style.cssText = `
-      left:${Math.random()*100}%;
-      background:${colors[Math.floor(Math.random()*colors.length)]};
-      animation-duration:${2+Math.random()*3}s;
-      animation-delay:${Math.random()*2}s;
-      width:${6+Math.random()*8}px;
-      height:${6+Math.random()*8}px;
-      border-radius:${Math.random()>.5?'50%':'2px'};
-    `;
-    wrap.appendChild(el);
-  }
-}
-
-// ─── Modals ──────────────────────────────────
-function openModal(id){ document.getElementById(id).classList.add('open'); }
-function closeModal(id){ document.getElementById(id).classList.remove('open'); }
-
-// ─── Toast ───────────────────────────────────
-let toastTimer = null;
-function showToast(msg, type=''){
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast show' + (type?' '+type:'');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>{ t.classList.remove('show'); }, 3000);
-}
-
-// ─── Stars Background ────────────────────────
-function createStars(){
-  const el = document.getElementById('stars-bg');
-  if(!el) return;
-  let html = '';
-  for(let i=0;i<120;i++){
-    const x=Math.random()*100, y=Math.random()*100;
-    const s=Math.random()*2+0.5;
-    const op=Math.random()*0.7+0.3;
-    const delay=Math.random()*4;
-    html+=`<div style="position:absolute;left:${x}%;top:${y}%;width:${s}px;height:${s}px;background:#fff;border-radius:50%;opacity:${op};animation:twinkle ${2+delay}s ease-in-out infinite alternate;animation-delay:${delay}s;"></div>`;
-  }
-  el.innerHTML = html;
-}
-
-// ─── Boot ────────────────────────────────────
-document.addEventListener('DOMContentLoaded', ()=>{
-  createStars();
-  populateForcedSelects();
-  tryLoadSaved();
-  renderAll();
-
-  // Close modals on overlay click
-  document.querySelectorAll('.modal-overlay').forEach(m=>{
-    m.addEventListener('click', e=>{ if(e.target===m) m.classList.remove('open'); });
-  });
-});
-function populateForcedSelects(){
-  const selL = document.getElementById('sel-forced-line');
-  const selR = document.getElementById('sel-forced-roulette');
-  for(let i=1;i<=15;i++){
-    if(selL) selL.insertAdjacentHTML('beforeend', `<option value="${i}">Línea ${i}</option>`);
-    if(selR) selR.insertAdjacentHTML('beforeend', `<option value="${i}">Número ${i}</option>`);
-  }
-}
-</script>
-
-<style>
-/* Extra: twinkle star animation */
-@keyframes twinkle{
-  from{opacity:.2;}
-  to{opacity:.9;}
-}
-</style>
-</body>
+<!DOCTYPE html>
+
+
+<html lang="es">
+
+
+<head>
+
+
+<meta charset="UTF-8"/>
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+
+<title>Bolsillo Lleno – Bingo Lineal</title>
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+
+
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+
+
+
+
+
+<!-- Firebase SDK -->
+
+
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+
+
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+
+
+
+
+
+<style>
+
+
+/* ═══════════════════════════════════════
+
+
+   TOKENS
+
+
+═══════════════════════════════════════ */
+
+
+:root{
+
+
+  --bg:       #0d0720;
+
+
+  --bg2:      #160e30;
+
+
+  --bg3:      #1e1445;
+
+
+  --gold:     #FFD700;
+
+
+  --gold2:    #FFA500;
+
+
+  --red:      #C0392B;
+
+
+  --red2:     #E74C3C;
+
+
+  --green:    #27AE60;
+
+
+  --green2:   #2ECC71;
+
+
+  --purple:   #8A2BE2;
+
+
+  --purple2:  #9B59B6;
+
+
+  --white:    #FFFFFF;
+
+
+  --gray:     #8892a4;
+
+
+  --border:   rgba(255,215,0,0.15);
+
+
+  --radius:   12px;
+
+
+  --ff-num:   'Bebas Neue', sans-serif;
+
+
+  --ff-ui:    'Inter', sans-serif;
+
+
+  --shadow:   0 4px 24px rgba(0,0,0,0.5);
+
+
+}
+
+
+*{margin:0;padding:0;box-sizing:border-box;}
+
+
+html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--white);overflow-x:hidden;}
+
+
+
+
+
+/* ═══════════════════════════════════════
+
+
+   SCROLLBAR
+
+
+═══════════════════════════════════════ */
+
+
+::-webkit-scrollbar{width:6px;}
+
+
+::-webkit-scrollbar-track{background:var(--bg2);}
+
+
+::-webkit-scrollbar-thumb{background:var(--gold);border-radius:3px;}
+
+
+
+
+
+/* ═══════════════════════════════════════
+
+
+   ROUTER VIEWS
+
+
+═══════════════════════════════════════ */
+
+
+.view{display:none;min-height:100vh;}
+
+
+.view.active{display:flex;flex-direction:column;}
+
+
+
+
+
+/* ═══════════════════════════════════════
+
+
+   LANDING / ROUTER PAGE
+
+
+═══════════════════════════════════════ */
+
+
+#view-home{
+
+
+  align-items:center;justify-content:center;
+
+
+  background: radial-gradient(ellipse at center, #1e1445 0%, #0d0720 70%);
+
+
+}
+
+
+.home-logo{
+
+
+  font-family:var(--ff-num);font-size:clamp(48px,8vw,90px);
+
+
+  color:var(--gold);text-shadow:0 0 40px rgba(255,215,0,0.5);
+
+
+  letter-spacing:4px;text-align:center;line-height:1;
+
+
+}
+
+
+.home-logo-img{
+
+
+  width:clamp(180px,32vw,320px);height:auto;
+
+
+  filter:drop-shadow(0 0 40px rgba(255,215,0,0.45));
+
+
+}
+
+
+.home-sub{color:var(--gray);font-size:14px;letter-spacing:3px;text-transform:uppercase;margin:8px 0 40px;}
+
+
+.home-buttons{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;}
+
+
+.btn-home{
+
+
+  padding:16px 40px;border-radius:50px;border:none;cursor:pointer;
+
+
+  font-family:var(--ff-num);font-size:20px;letter-spacing:2px;
+
+
+  transition:all .2s;text-decoration:none;display:inline-block;
+
+
+}
+
+
+.btn-home.admin{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a0a2e;}
+
+
+.btn-home.public{background:transparent;border:2px solid var(--gold);color:var(--gold);}
+
+
+.btn-home:hover{transform:translateY(-3px);box-shadow:0 8px 30px rgba(255,215,0,0.3);}
+
+
+
+
+
+/* ═══════════════════════════════════════
+
+
+   SHARED TOP BAR
+
+
+═══════════════════════════════════════ */
+
+
+.topbar{
+
+
+  background:var(--bg2);border-bottom:1px solid var(--border);
+
+
+  padding:10px 20px;display:flex;align-items:center;justify-content:space-between;
+
+
+  position:sticky;top:0;z-index:100;flex-shrink:0;
+
+
+}
+
+
+.topbar-logo{font-family:var(--ff-num);font-size:22px;color:var(--gold);letter-spacing:2px;}
+
+
+.topbar-logo-img{height:42px;width:auto;display:block;}
+
+
+.topbar-info{display:flex;gap:20px;align-items:center;}
+
+
+.info-chip{
+
+
+  background:var(--bg3);border:1px solid var(--border);
+
+
+  padding:4px 12px;border-radius:20px;font-size:12px;
+
+
+}
+
+
+.info-chip span{color:var(--gold);font-weight:600;}
+
+
+.btn-back{
+
+
+  background:none;border:1px solid var(--border);color:var(--gray);
+
+
+  padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;
+
+
+}
+
+
+.btn-back:hover{color:var(--white);border-color:var(--white);}
+
+
+
+
+
+/* ═══════════════════════════════════════
+
+
+   ADMIN LAYOUT
+
+
+═══════════════════════════════════════ */
+
+
+#view-admin .content{
+
+
+  display:grid;
+
+
+  grid-template-columns:260px 1fr 280px;
+
+
+  gap:16px;padding:16px;flex:1;
+
+
+  overflow:hidden;
+
+
+}
+
+
+@media(max-width:1100px){
+
+
+  #view-admin .content{grid-template-columns:1fr;overflow:auto;}
+
+
+}
+
+
+
+
+
+/* ═══════════════════════════════════════
+
+
+   PANELS
+
+
+═══════════════════════════════════════ */
+
+
+.panel{
+
+
+  background:var(--bg2);border:1px solid var(--border);
+
+
+  border-radius:var(--radius);padding:16px;overflow-y:auto;
+
+
+}
+
+
+.panel-title{
+
+
+  font-family:var(--ff-num);font-size:16px;letter-spacing:2px;
+
+
+  color:var(--gold);margin-bottom:12px;padding-bottom:8px;
+
+
+  border-bottom:1px solid var(--border);
+
+
+}
+
+
+
+
+
+/* ═══════════════════════════════════════
+
+
+   ROUND INFO FORM
+
+
+═══════════════════════════════════════ */
+
+
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+
+
+.form-group{display:flex;flex-direction:column;gap:4px;}
+
+
+.form-group label{font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:1px;}
+
+
+.form-group input,.form-group select{
+
+
+  background:var(--bg3);border:1px solid var(--border);color:var(--white);
+
+
+  padding:8px 10px;border-radius:8px;font-size:13px;
+
+
+}
+
+
+.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--gold);}
+
+
+
+
+
+/* ═══════════════════════════════════════
+
+
+   BUTTONS
+
+
+═══════════════════════════════════════ */
+
+
+.btn{
+
+
+  padding:10px 16px;border-radius:8px;border:none;cursor:pointer;
+
+
+  font-size:12px;font-weight:600;letter-spacing:1px;transition:all .2s;
+
+
+  text-transform:uppercase;display:inline-flex;align-items:center;gap:6px;
+
+
+}
+
+
+.btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a0a2e;}
+
+
+.btn-gold:hover{box-shadow:0 4px 20px rgba(255,215,0,0.4);transform:translateY(-1px);}
+
+
+.btn-red{background:linear-gradient(135deg,var(--red),var(--red2));color:#fff;}
+
+
+.btn-red:hover{box-shadow:0 4px 20px rgba(192,57,43,0.4);}
+
+
+.btn-green{background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;}
+
+
+.btn-green:hover{box-shadow:0 4px 20px rgba(39,174,96,0.4);}
+
+
+.btn-purple{background:linear-gradient(135deg,var(--purple),var(--purple2));color:#fff;}
+
+
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--gray);}
+
+
+.btn-ghost:hover{border-color:var(--white);color:var(--white);}
+
+
+.btn-sm{padding:6px 10px;font-size:11px;}
+
+
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none !important;box-shadow:none !important;}
+
+
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+
+
+
+
+
+/* Control panel buttons */
+
+
+.ctrl-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+
+
+.ctrl-btn{
+
+
+  padding:12px 8px;border-radius:10px;border:none;cursor:pointer;
+
+
+  font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+
+
+  transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:4px;
+
+
+}
+
+
+.ctrl-btn .icon{font-size:22px;}
+
+
+.ctrl-btn.start{background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;}
+
+
+.ctrl-btn.pause{background:linear-gradient(135deg,#e67e22,#f39c12);color:#fff;}
+
+
+.ctrl-btn.stop{background:linear-gradient(135deg,var(--red),var(--red2));color:#fff;}
+
+
+.ctrl-btn.draw{background:linear-gradient(135deg,var(--purple),var(--purple2));color:#fff;}
+
+
+.ctrl-btn.reset{background:linear-gradient(135deg,#2c3e50,#34495e);color:#fff;}
+
+
+.ctrl-btn.auto{background:linear-gradient(135deg,#1a6b8a,#2980b9);color:#fff;}
+
+
+.ctrl-btn.auto.active{background:linear-gradient(135deg,#0fa36b,#16a085);box-shadow:0 0 20px rgba(22,160,133,0.5);}
+
+
+.ctrl-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow);}
+
+
+.ctrl-btn:disabled{opacity:.4;cursor:not-allowed;transform:none !important;box-shadow:none !important;}
+
+
+
+
+
+/* Speed select */
+
+
+.speed-row{margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--gray);}
+
+
+.speed-row select{
+
+
+  background:var(--bg3);border:1px solid var(--border);color:var(--white);
+
+
+  padding:5px 10px;border-radius:8px;font-size:12px;flex:1;
+
+
+}
+
+
+
+
+
+/* ═══════════════════════════════════════
+
+
+   BINGO BOARD
+
+
+═══════════════════════════════════════ */
+
+
+.board-wrap{display:flex;flex-direction:column;gap:16px;}
+
+
+.board-header{
+
+
+  display:grid;grid-template-columns:repeat(5,1fr);gap:4px;text-align:center;
+
+
+}
+
+
+.col-label{
+
+
+  font-family:var(--ff-num);font-size:clamp(24px,3vw,36px);
+
+
+  padding:8px 0;border-radius:8px;
+
+
+}
+
+
+.col-B{color:var(--white);background:rgba(41,128,185,0.3);}
+
+
+.col-I{color:var(--white);background:rgba(39,174,96,0.3);}
+
+
+.col-N{color:var(--white);background:rgba(192,57,43,0.3);}
+
+
+.col-G{color:var(--white);background:rgba(142,68,173,0.3);}
+
+
+.col-O{color:var(--white);background:rgba(230,126,34,0.3);}
+
+
+
+
+
+.board-grid{
+
+
+  display:grid;grid-template-columns:repeat(5,1fr);
+
+
+  grid-template-rows:repeat(15,1fr);gap:4px;
+
+
+}
+
+
+.ball-cell{
+
+
+  aspect-ratio:1;border-radius:50%;
+
+
+  display:flex;align-items:center;justify-content:center;
+
+
+  font-family:var(--ff-num);font-size:clamp(12px,1.5vw,18px);
+
+
+  background:var(--bg3);border:2px solid var(--border);
+
+
+  color:var(--gray);transition:all .4s;cursor:default;
+
+
+  position:relative;
+
+
+}
+
+
+.ball-cell.called{
+
+
+  background:radial-gradient(circle at 35% 35%, #b366ff, var(--purple));
+
+
+  border-color:var(--purple2);color:var(--white);
+
+
+  box-shadow:0 0 12px rgba(138,43,226,0.6),inset 0 1px 0 rgba(255,255,255,0.3);
+
+
+  animation:ballPop .35s ease-out;
+
+
+}
+
+
+.ball-cell.winner-line{
+
+
+  background:radial-gradient(circle at 35% 35%, #ffe066, var(--gold));
+
+
+  border-color:var(--gold);color:#1a0a2e;
+
+
+  box-shadow:0 0 20px rgba(255,215,0,0.8);
+
+
+  animation:winnerPulse 1s ease-in-out infinite;
+
+
+}
+
+
+@keyframes ballPop{
+
+
+  0%{transform:scale(.6);opacity:.3;}
+
+
+  70%{transform:scale(1.15);}
+
+
+  100%{transform:scale(1);opacity:1;}
+
+
+}
+
+
+@keyframes winnerPulse{
+
+
+  0%,100%{box-shadow:0 0 20px rgba(255,215,0,0.8);}
+
+
+  50%{box-shadow:0 0 40px rgba(255,215,0,1);}
+
+
+}
+
+
+
+
+
+/* ═══════════════════════════════════════
+
+
+   CURRENT BALL DISPLAY
+
+
+═══════════════════════════════════════ */
+
+
+.current-ball-wrap{
+
+
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+
+
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;
+
+
+}
+
+
+.current-ball{
+
+
+  width:clamp(80px,12vw,120px);height:clamp(80px,12vw,120px);
+
+
+  border-radius:50%;
+
+
+  background:radial-gradient(circle at 35% 35%, #b366ff, var(--purple));
+
+
+  border:3px solid var(--purple2);
+
+
+  display:flex;align-items:center;justify-content:center;
+
+
+  font-family:var(--ff-num);font-size:clamp(36px,6vw,60px);
+
+
+  box-shadow:0 0 30px rgba(138,43,226,0.7),inset 0 2px 0 rgba(255,255,255,0.3);
+
+
+  transition:all .3s;
+
+
+}
+
+
+.current-ball.empty{
+
+
+  background:var(--bg3);border-color:var(--border);color:var(--gray);
+
+
+  box-shadow:none;font-size:24px;
+
+
+}
+
+
+.ball-counter{font-size:13px;color:var(--gray);}
+
+
+.ball-counter span{color:var(--gold);font-weight:700;font-size:16px;}
+
+
+
+
+
+/* Recent balls */
+
+
+.recent-balls{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:4px;}
+
+
+.recent-ball{
+
+
+  width:36px;height:36px;border-radius:50%;
+
+
+  background:rgba(138,43,226,0.3);border:1px solid var(--purple2);
+
+
+  display:flex;align-items:center;justify-content:center;
+
+
+  font-family:var(--ff-num);font-size:15px;color:var(--purple2);
+
+
+}
+
+
+
+
+
+/* ═══════════════════════════════════════
+
+
+   LINES PANEL (ADMIN)
+
+
+═══════════════════════════════════════ */
+
+
+.line-item{
+
+
+  background:var(--bg3);border:1px solid var(--border);
+
+
+  border-radius:10px;padding:10px;margin-bottom:8px;
+
+
+  display:flex;align-items:center;gap:8px;cursor:pointer;
+
+
+  transition:all .2s;
+
+
+}
+
+
+.line-item:hover{border-color:var(--gold);transform:translateX(2px);}
+
+
+.line-item.paid{border-left:3px solid var(--green);}
+
+
+.line-item.pending{border-left:3px solid var(--red);}
+
+
+.line-item.free{border-left:3px solid var(--gray);opacity:.7;}
+
+
+.line-item.winner{border-left:3px solid var(--gold);background:rgba(255,215,0,0.1);animation:winnerPulse 1.5s infinite;}
+
+
+.line-num{
+
+
+  width:28px;height:28px;border-radius:50%;
+
+
+  background:var(--bg2);border:1px solid var(--border);
+
+
+  display:flex;align-items:center;justify-content:center;
+
+
+  font-family:var(--ff-num);font-size:16px;flex-shrink:0;
+
+
+}
+
+
+.line-info{flex:1;min-width:0;}
+
+
+.line-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+
+.line-balls{font-size:10px;color:var(--gray);margin-top:2px;}
+
+
+.line-status{font-size:10px;font-weight:700;white-space:nowrap;}
+
+
+.status-paid{color:var(--green2);}
+
+
+.status-pending{color:var(--red2);}
+
+
+.status-free{color:var(--gray);}
+
+
+.line-actions{display:flex;gap:4px;}
+
+
+
+
+
+/* ═══════════════════════════════════════
+
+
+   MODAL
+
+
+═══════════════════════════════════════ */
+
+
+.modal-overlay{
+
+
+  position:fixed;inset:0;background:rgba(0,0,0,0.8);
+
+
+  display:none;align-items:center;justify-content:center;z-index:1000;
+
+
+  padding:20px;backdrop-filter:blur(4px);
+
+
+}
+
+
+.modal-overlay.open{display:flex;}
+
+
+.modal{
+
+
+  background:var(--bg2);border:1px solid var(--border);
+
+
+  border-radius:16px;padding:24px;width:100%;max-width:420px;
+
+
+  box-shadow:0 20px 60px rgba(0,0,0,0.8);
+
+
+  animation:modalIn .25s ease-out;
+
+
+}
+
+
+@keyframes modalIn{
+
+
+  from{transform:scale(.9);opacity:0;}
+
+
+  to{transform:scale(1);opacity:1;}
+
+
+}
+
+
+.modal-title{font-family:var(--ff-num);font-size:20px;color:var(--gold);margin-bottom:16px;letter-spacing:2px;}
+
+
+.modal-close{float:right;background:none;border:none;color:var(--gray);font-size:20px;cursor:pointer;}
+
+
+.modal-close:hover{color:var(--white);}
+
+
+.radio-group{display:flex;gap:8px;margin-top:4px;}
+
+
+.radio-group label{
+
+
+  flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;
+
+
+  display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;
+
+
+  transition:all .2s;
+
+
+}
+
+
+.radio-group input[type=radio]{accent-color:var(--gold);}
+
+
+.radio-group label.paid-l{border-color:var(--green);}
+
+
+.radio-group label.pending-l{border-color:var(--red);}
+
+
+
+
+
+/* ═══════════════════════════════════════
+
+
+   WINNER MODAL
+
+
+═══════════════════════════════════════ */
+
+
+.winner-overlay{
+
+
+  position:fixed;inset:0;background:rgba(0,0,0,0.92);
+
+
+  display:none;align-items:center;justify-content:center;z-index:2000;
+
+
+  flex-direction:column;gap:24px;text-align:center;
+
+
+  padding:20px;
+
+
+}
+
+
+.winner-overlay.open{display:flex;animation:fadeIn .5s;}
+
+
+.winner-trophy{font-size:80px;animation:bounce 1s ease infinite;}
+
+
+.winner-title{font-family:var(--ff-num);font-size:clamp(40px,8vw,80px);color:var(--gold);letter-spacing:4px;text-shadow:0 0 40px rgba(255,215,0,0.7);}
+
+
+.winner-name{font-size:clamp(20px,4vw,36px);font-weight:700;color:var(--white);}
+
+
+.winner-detail{font-size:16px;color:var(--gray);margin-top:4px;}
+
+
+.winner-prize{font-family:var(--ff-num);font-size:clamp(30px,5vw,50px);color:var(--green2);margin-top:8px;}
+
+
+.confetti-wrap{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+
+
+@keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-20px);}}
+
+
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+
+
+
+
+
+/* Confetti particles */
+
+
+.confetti-piece{
+
+
+  position:absolute;width:10px;height:10px;
+
+
+  border-radius:2px;animation:confettiFall linear infinite;
+
+
+}
+
+
+@keyframes confettiFall{
+
+
+  0%{transform:translateY(-20px) rotate(0deg);opacity:1;}
+
+
+  100%{transform:translateY(100vh) rotate(720deg);opacity:0;}
+
+
+}
+
+
+
+
+
+/* ═══════════════════════════════════════
+
+
+   ROULETTE OVERLAY (sorteo del acumulado)
+
+
+═══════════════════════════════════════ */
+
+
+.roulette-overlay{
+
+
+  position:fixed;inset:0;background:rgba(0,0,0,0.94);
+
+
+  display:none;align-items:center;justify-content:center;z-index:2100;
+
+
+  flex-direction:column;gap:18px;text-align:center;padding:20px;
+
+
+}
+
+
+.roulette-overlay.open{display:flex;animation:fadeIn .4s;}
+
+
+.roulette-title{font-family:var(--ff-num);font-size:clamp(22px,5vw,34px);color:var(--purple2);letter-spacing:3px;text-shadow:0 0 24px rgba(138,43,226,0.6);}
+
+
+.reel-frame{
+
+
+  width:clamp(150px,45vw,220px);height:clamp(150px,45vw,220px);
+
+
+  border-radius:50%;
+
+
+  background:radial-gradient(circle at 35% 30%, var(--bg3), var(--bg));
+
+
+  border:4px solid var(--gold);
+
+
+  box-shadow:0 0 40px rgba(255,215,0,0.4), inset 0 0 30px rgba(0,0,0,0.6);
+
+
+  display:flex;align-items:center;justify-content:center;
+
+
+  position:relative;
+
+
+}
+
+
+.reel-number{
+
+
+  font-family:var(--ff-num);font-size:clamp(60px,16vw,96px);color:var(--gold);
+
+
+  text-shadow:0 0 20px rgba(255,215,0,0.6);
+
+
+}
+
+
+.reel-number.landed{animation:reelLanded .6s ease;}
+
+
+@keyframes reelLanded{
+
+
+  0%{transform:scale(1.4);}
+
+
+  50%{transform:scale(0.9);}
+
+
+  100%{transform:scale(1);}
+
+
+}
+
+
+.roulette-result{max-width:420px;}
+
+
+.roulette-number-label{font-size:12px;letter-spacing:2px;color:var(--gray);text-transform:uppercase;}
+
+
+.roulette-msg{font-size:clamp(14px,3vw,18px);font-weight:600;margin-top:6px;line-height:1.4;}
+
+
+
+
+
+/* ═══════════════════════════════════════
+
+
+   PUBLIC VIEW
+
+
+═══════════════════════════════════════ */
+
+
+#view-public{background:radial-gradient(ellipse at top, #1e1445 0%, #0d0720 60%);}
+
+
+#view-public .content{
+
+
+  display:grid;
+
+
+  grid-template-columns:200px 1fr 280px;
+
+
+  gap:16px;padding:16px;flex:1;
+
+
+  overflow:hidden;
+
+
+}
+
+
+@media(max-width:1000px){
+
+
+  #view-public .content{grid-template-columns:1fr;overflow:auto;}
+
+
+}
+
+
+
+
+
+/* Prize display */
+
+
+.prize-card{
+
+
+  background:linear-gradient(135deg,rgba(255,215,0,0.1),rgba(255,165,0,0.05));
+
+
+  border:1px solid rgba(255,215,0,0.3);border-radius:12px;
+
+
+  padding:16px;text-align:center;margin-bottom:10px;
+
+
+}
+
+
+.prize-label{font-size:10px;letter-spacing:2px;color:var(--gray);text-transform:uppercase;}
+
+
+.prize-value{font-family:var(--ff-num);font-size:clamp(22px,3vw,30px);color:var(--gold);}
+
+
+.prize-card.accum .prize-value{color:var(--green2);}
+
+
+
+
+
+/* Public lines */
+
+
+.pub-lines{display:flex;flex-direction:column;gap:6px;}
+
+
+.pub-line{
+
+
+  background:var(--bg3);border:1px solid var(--border);
+
+
+  border-radius:8px;padding:8px 12px;
+
+
+  display:flex;align-items:center;gap:8px;
+
+
+}
+
+
+.pub-line.winner{
+
+
+  border-color:var(--gold);background:rgba(255,215,0,0.1);
+
+
+  animation:winnerPulse 1.5s infinite;
+
+
+}
+
+
+.pub-line-num{
+
+
+  font-family:var(--ff-num);font-size:18px;color:var(--gold);
+
+
+  width:24px;text-align:center;
+
+
+}
+
+
+.pub-line-info{flex:1;}
+
+
+.pub-line-name{font-size:13px;font-weight:600;}
+
+
+.pub-line-balls{font-size:10px;color:var(--gray);}
+
+
+.pub-line-progress{
+
+
+  display:flex;gap:3px;
+
+
+}
+
+
+.prog-dot{
+
+
+  width:10px;height:10px;border-radius:50%;
+
+
+  background:var(--bg2);border:1px solid var(--border);
+
+
+  transition:all .3s;
+
+
+}
+
+
+.prog-dot.hit{background:var(--purple);border-color:var(--purple2);box-shadow:0 0 6px rgba(138,43,226,0.5);}
+
+
+.prog-dot.hit.win{background:var(--gold);border-color:var(--gold2);box-shadow:0 0 6px rgba(255,215,0,0.8);}
+
+
+
+
+
+/* Toast notification */
+
+
+.toast{
+
+
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);
+
+
+  background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+
+
+  padding:12px 24px;font-size:14px;z-index:9999;
+
+
+  transition:transform .3s;white-space:nowrap;
+
+
+  box-shadow:var(--shadow);
+
+
+}
+
+
+.toast.show{transform:translateX(-50%) translateY(0);}
+
+
+.toast.success{border-color:var(--green);color:var(--green2);}
+
+
+.toast.error{border-color:var(--red);color:var(--red2);}
+
+
+
+
+
+/* History table */
+
+
+.history-table{width:100%;border-collapse:collapse;font-size:12px;}
+
+
+.history-table th{padding:8px;text-align:left;color:var(--gray);border-bottom:1px solid var(--border);font-weight:500;}
+
+
+.history-table td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.05);}
+
+
+.history-table tr:hover td{background:rgba(255,255,255,0.03);}
+
+
+
+
+
+/* ═══════════════════════════════════════
+
+
+   GAME STATE BADGE
+
+
+═══════════════════════════════════════ */
+
+
+.state-badge{
+
+
+  padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;
+
+
+  letter-spacing:1px;text-transform:uppercase;
+
+
+}
+
+
+.state-idle{background:rgba(255,255,255,0.1);color:var(--gray);}
+
+
+.state-active{background:rgba(39,174,96,0.2);color:var(--green2);border:1px solid var(--green);}
+
+
+.state-paused{background:rgba(230,126,34,0.2);color:#f39c12;border:1px solid #e67e22;}
+
+
+.state-finished{background:rgba(192,57,43,0.2);color:var(--red2);border:1px solid var(--red);}
+
+
+
+
+
+/* ═══════════════════════════════════════
+
+
+   TABS (ADMIN)
+
+
+═══════════════════════════════════════ */
+
+
+.tab-row{display:flex;gap:4px;margin-bottom:12px;}
+
+
+.tab-btn{
+
+
+  padding:6px 12px;border-radius:6px;border:none;cursor:pointer;
+
+
+  font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;
+
+
+  background:var(--bg3);color:var(--gray);transition:all .2s;
+
+
+}
+
+
+.tab-btn.active{background:var(--gold);color:#1a0a2e;}
+
+
+.tab-content{display:none;}
+
+
+.tab-content.active{display:block;}
+
+
+
+
+
+/* ═══════════════════════════════════════
+
+
+   RESPONSIVIDAD MÓVIL
+
+
+═══════════════════════════════════════ */
+
+
+@media(max-width:700px){
+
+
+  .topbar{flex-wrap:wrap;row-gap:6px;padding:8px 12px;}
+
+
+  .topbar-info{display:flex;order:3;width:100%;justify-content:center;gap:10px;}
+
+
+  .topbar-logo{font-size:17px;}
+
+
+  .topbar-logo-img{height:30px;}
+
+
+  .home-logo-img{width:clamp(140px,55vw,220px);}
+
+
+  .form-grid{grid-template-columns:1fr;}
+
+
+  .ctrl-grid{grid-template-columns:repeat(3,1fr);}
+
+
+  .home-buttons{flex-direction:column;align-items:stretch;}
+
+
+  #view-admin .content,#view-public .content{padding:10px;gap:10px;}
+
+
+  .panel{padding:12px;}
+
+
+  .board-grid{gap:3px;}
+
+
+  .ball-cell{font-size:clamp(10px,3.2vw,15px);}
+
+
+  .current-ball{width:clamp(64px,20vw,90px);height:clamp(64px,20vw,90px);font-size:clamp(26px,8vw,42px);}
+
+
+  .ctrl-btn{padding:10px 6px;font-size:10px;}
+
+
+  .ctrl-btn .icon{font-size:18px;}
+
+
+  .modal{padding:18px;}
+
+
+  .winner-trophy{font-size:56px;}
+
+
+  .reel-frame{width:clamp(130px,65vw,190px);height:clamp(130px,65vw,190px);}
+
+
+  .reel-item{height:clamp(130px,65vw,190px);}
+
+
+  .history-table{font-size:10px;}
+
+
+  .history-table th,.history-table td{padding:5px;}
+
+
+  .tab-btn{flex:1;font-size:10px;padding:8px 6px;}
+
+
+}
+
+
+@media(max-width:420px){
+
+
+  .ctrl-grid{grid-template-columns:repeat(2,1fr);}
+
+
+  .info-chip{font-size:10px;padding:3px 8px;}
+
+
+}
+
+
+</style>
+
+
+</head>
+
+
+<body>
+
+
+
+
+
+<!-- ═══════════════════ HOME ═══════════════════ -->
+
+
+<div id="view-home" class="view active">
+
+
+  <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;">
+
+
+    <div id="stars-bg"></div>
+
+
+  </div>
+
+
+  <div style="position:relative;z-index:1;text-align:center;padding:40px 20px;">
+
+
+    <img src="https://i.imgur.com/H1sQS4p.png" alt="Bolsillo Lleno x5" class="home-logo-img"/>
+
+
+    <div class="home-sub">Sistema de Bingo Lineal en Vivo</div>
+
+
+    <div class="home-buttons">
+
+
+      <button class="btn-home admin" onclick="goToAdmin()">⚙️ Panel Admin</button>
+
+
+      <button class="btn-home public" onclick="goTo('public')">📺 Pantalla Pública</button>
+
+
+    </div>
+
+
+    <div id="firebase-status" style="margin-top:30px;font-size:12px;color:var(--gray);">
+
+
+      Conectando con Firebase…
+
+
+    </div>
+
+
+  </div>
+
+
+</div>
+
+
+
+
+
+<!-- ═══════════════════ LOGIN ═══════════════════ -->
+
+
+<div id="view-login" class="view">
+
+
+  <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:20px;">
+
+
+    <div class="panel" style="max-width:380px;width:100%;">
+
+
+      <div class="panel-title" style="text-align:center;font-size:20px;">🔐 ACCESO ADMIN</div>
+
+
+      <div class="form-group" style="margin-bottom:10px;">
+
+
+        <label>Correo electrónico</label>
+
+
+        <input id="login-email" type="email" placeholder="admin@bolsillolleno.com"/>
+
+
+      </div>
+
+
+      <div class="form-group" style="margin-bottom:16px;">
+
+
+        <label>Contraseña</label>
+
+
+        <input id="login-password" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
+
+
+      </div>
+
+
+      <div id="login-error" style="color:var(--red2);font-size:12px;margin-bottom:10px;display:none;"></div>
+
+
+      <button class="btn btn-gold" style="width:100%" onclick="doLogin()">Ingresar</button>
+
+
+      <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;" onclick="goTo('home')">← Volver</button>
+
+
+    </div>
+
+
+  </div>
+
+
+</div>
+
+
+
+
+
+<!-- ═══════════════════ ADMIN ═══════════════════ -->
+
+
+<div id="view-admin" class="view">
+
+
+  <div class="topbar">
+
+
+    <img src="https://i.imgur.com/H1sQS4p.png" alt="Bolsillo Lleno x5" class="topbar-logo-img"/>
+
+
+    <div class="topbar-info">
+
+
+      <div class="info-chip">Ronda <span id="a-round">1</span></div>
+
+
+      <div class="info-chip">👁️ <span id="a-viewer-count">0</span> en vivo</div>
+
+
+      <div id="a-state-badge" class="state-badge state-idle">Inactivo</div>
+
+
+    </div>
+
+
+    <button class="btn-back" onclick="doLogout()">🚪 Salir</button>
+
+
+  </div>
+
+
+  <div class="content">
+
+
+    <div style="display:flex;flex-direction:column;gap:12px;overflow-y:auto;">
+
+
+
+
+
+      <div class="tab-row">
+
+
+        <button class="tab-btn active" id="admtab-btn-juego" onclick="switchAdminTab('juego')">🎮 Juego</button>
+
+
+        <button class="tab-btn" id="admtab-btn-historial" onclick="switchAdminTab('historial')">📋 Historial</button>
+
+
+        <button class="tab-btn" id="admtab-btn-config" onclick="switchAdminTab('config')">⚙️ Config</button>
+
+
+      </div>
+
+
+
+
+
+      <div class="tab-content active" id="admtab-juego">
+
+
+
+
+
+      <!-- Round Info -->
+
+
+      <div class="panel">
+
+
+        <div class="panel-title">ℹ️ Información de Ronda</div>
+
+
+        <div class="form-grid">
+
+
+          <div class="form-group">
+
+
+            <label>Ronda #</label>
+
+
+            <input id="inp-round" type="number" value="1" min="1"/>
+
+
+          </div>
+
+
+          <div class="form-group">
+
+
+            <label>Valor línea</label>
+
+
+            <input id="inp-price" type="text" placeholder="$5.000"/>
+
+
+          </div>
+
+
+          <div class="form-group">
+
+
+            <label>Premio</label>
+
+
+            <input id="inp-prize" type="text" placeholder="$50.000"/>
+
+
+          </div>
+
+
+          <div class="form-group">
+
+
+            <label>Acumulado</label>
+
+
+            <input id="inp-accum" type="text" placeholder="$100.000"/>
+
+
+          </div>
+
+
+        </div>
+
+
+        <button class="btn btn-gold" style="width:100%" onclick="saveRoundInfo()">💾 Guardar</button>
+
+
+      </div>
+
+
+
+
+
+      <!-- Game Controls -->
+
+
+      <div class="panel">
+
+
+        <div class="panel-title">🎮 Controles del Juego</div>
+
+
+        <div class="ctrl-grid">
+
+
+          <button class="ctrl-btn start" id="btn-start" onclick="startGame()">
+
+
+            <span class="icon">▶️</span>Iniciar
+
+
+          </button>
+
+
+          <button class="ctrl-btn pause" id="btn-pause" onclick="pauseGame()" disabled>
+
+
+            <span class="icon">⏸️</span>Pausar
+
+
+          </button>
+
+
+          <button class="ctrl-btn start" id="btn-resume" onclick="resumeGame()" disabled style="display:none">
+
+
+            <span class="icon">▶️</span>Continuar
+
+
+          </button>
+
+
+          <button class="ctrl-btn stop" id="btn-stop" onclick="stopGame()" disabled>
+
+
+            <span class="icon">⏹️</span>Finalizar
+
+
+          </button>
+
+
+          <button class="ctrl-btn draw" id="btn-draw" onclick="drawBall()" disabled>
+
+
+            <span class="icon">🎲</span>Balota
+
+
+          </button>
+
+
+          <button class="ctrl-btn reset" id="btn-reset" onclick="confirmReset()">
+
+
+            <span class="icon">🔄</span>Reiniciar
+
+
+          </button>
+
+
+        </div>
+
+
+        <!-- Auto mode -->
+
+
+        <div style="margin-top:10px;">
+
+
+          <button class="ctrl-btn auto" id="btn-auto" onclick="toggleAuto()" disabled style="width:100%;">
+
+
+            <span class="icon">⚡</span><span id="auto-label">Modo Automático</span>
+
+
+          </button>
+
+
+          <div class="speed-row">
+
+
+            <span>Velocidad:</span>
+
+
+            <select id="sel-speed" onchange="updateSpeed()">
+
+
+              <option value="2000">2 segundos</option>
+
+
+              <option value="3000" selected>3 segundos</option>
+
+
+              <option value="5000">5 segundos</option>
+
+
+              <option value="8000">8 segundos</option>
+
+
+              <option value="10000">10 segundos</option>
+
+
+            </select>
+
+
+          </div>
+
+
+        </div>
+
+
+      </div>
+
+
+
+
+
+      <!-- New Round -->
+
+
+      <div class="panel">
+
+
+        <div class="panel-title">🔁 Nueva Ronda</div>
+
+
+        <p style="font-size:12px;color:var(--gray);margin-bottom:10px;">Limpia balotas y jugadores. El acumulado se mantiene si no fue ganado.</p>
+
+
+        <button class="btn btn-purple" style="width:100%" onclick="newRound()">🆕 Nueva Ronda</button>
+
+
+      </div>
+
+
+
+
+
+      <!-- Roulette manual control -->
+
+
+      <div class="panel">
+
+
+        <div class="panel-title">🎡 Ruleta del Acumulado</div>
+
+
+        <p style="font-size:12px;color:var(--gray);margin-bottom:10px;">
+
+
+          Ya NO gira sola. Cuando salga un ganador, verás un botón "🎡 Ir a la Ruleta" en esa misma pantalla.
+
+
+          Si prefieres, también puedes girarla manualmente desde aquí.
+
+
+        </p>
+
+
+        <button class="btn btn-gold" style="width:100%" id="btn-spin-roulette" onclick="spinRoulette()">🎡 Girar Ruleta Ahora</button>
+
+
+      </div>
+
+
+
+
+
+      </div><!-- /admtab-juego -->
+
+
+
+
+
+      <div class="tab-content" id="admtab-historial">
+
+
+        <div class="panel">
+
+
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;">
+
+
+            <div class="panel-title" style="margin-bottom:0;">📋 Historial de Rondas</div>
+
+
+            <button class="btn btn-ghost btn-sm" style="color:var(--red,#ff5c5c);white-space:nowrap;" onclick="clearAllHistory()">🧹 Limpiar todo</button>
+
+
+          </div>
+
+
+          <p style="font-size:12px;color:var(--gray);margin-bottom:10px;">
+
+
+            Toca una ronda para ver sus jugadores, el ganador y el premio entregado, o para eliminarla del historial.
+
+
+          </p>
+
+
+          <div id="history-list" style="font-size:12px;">
+
+
+            <p style="color:var(--gray);">Sin partidas registradas.</p>
+
+
+          </div>
+
+
+        </div>
+
+
+      </div><!-- /admtab-historial -->
+
+
+
+
+
+      <div class="tab-content" id="admtab-config">
+
+
+        <div class="panel">
+
+
+          <div class="panel-title">⚙️ Resultado Forzado (opcional)</div>
+
+
+          <p style="font-size:12px;color:var(--gray);margin-bottom:10px;line-height:1.5;">
+
+
+            Por defecto todo es 100% al azar. Si en ocasiones especiales quieres decidir tú qué línea gana
+
+
+            y/o en qué número cae la ruleta, actívalo aquí. Es <strong>secreto</strong>: no se transmite al público
+
+
+            hasta que ocurra el sorteo en vivo, y se desactiva solo después de usarse una vez.
+
+
+          </p>
+
+
+          <div id="forced-config-badge" style="display:none;background:rgba(255,165,0,0.1);border:1px solid rgba(255,165,0,0.3);border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:12px;color:var(--gold2);"></div>
+
+
+          <div class="form-grid">
+
+
+            <div class="form-group">
+
+
+              <label>Línea forzada a ganar</label>
+
+
+              <select id="sel-forced-line">
+
+
+                <option value="">🎲 Aleatorio (recomendado)</option>
+
+
+              </select>
+
+
+            </div>
+
+
+            <div class="form-group">
+
+
+              <label>Número forzado en ruleta</label>
+
+
+              <select id="sel-forced-roulette">
+
+
+                <option value="">🎲 Aleatorio (recomendado)</option>
+
+
+              </select>
+
+
+            </div>
+
+
+          </div>
+
+
+          <div class="btn-row" style="margin-top:6px;">
+
+
+            <button class="btn btn-gold" style="flex:1" onclick="saveAdminConfig()">💾 Guardar</button>
+
+
+            <button class="btn btn-ghost btn-sm" onclick="clearAdminConfig()">🧹 Desactivar</button>
+
+
+          </div>
+
+
+          <p style="font-size:11px;color:var(--gray);margin-top:10px;">
+
+
+            💡 Tip: si igualas ambos valores, esa línea ganará la ronda Y se llevará también el Acumulado.
+
+
+          </p>
+
+
+        </div>
+
+
+      </div><!-- /admtab-config -->
+
+
+
+
+
+    </div>
+
+
+
+
+
+    <!-- CENTER: Board -->
+
+
+    <div class="panel" style="overflow-y:auto;">
+
+
+      <div class="panel-title">🎱 Tablero Maestro</div>
+
+
+      <div class="board-wrap">
+
+
+        <!-- Current ball -->
+
+
+        <div class="current-ball-wrap">
+
+
+          <div id="current-ball-display" class="current-ball empty">–</div>
+
+
+          <div class="ball-counter">BOLA: <span id="ball-count">0</span> / 75</div>
+
+
+          <div class="recent-balls" id="recent-balls-display"></div>
+
+
+        </div>
+
+
+        <!-- Column headers -->
+
+
+        <div class="board-header">
+
+
+          <div class="col-label col-B">B</div>
+
+
+          <div class="col-label col-I">I</div>
+
+
+          <div class="col-label col-N">N</div>
+
+
+          <div class="col-label col-G">G</div>
+
+
+          <div class="col-label col-O">O</div>
+
+
+        </div>
+
+
+        <!-- 75-ball grid (B=1-15, I=16-30, N=31-45, G=46-60, O=61-75 — arranged in rows by line) -->
+
+
+        <div class="board-grid" id="board-grid"></div>
+
+
+      </div>
+
+
+    </div>
+
+
+
+
+
+    <!-- RIGHT: Lines -->
+
+
+    <div class="panel" style="overflow-y:auto;">
+
+
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
+        <div class="panel-title" style="margin-bottom:0;padding-bottom:0;border-bottom:none;">👥 Las 15 Líneas</div>
+        <button class="btn btn-purple btn-sm" style="white-space:nowrap;" onclick="openMultiLineModal()">🔢 Varias</button>
+      </div>
+
+
+      <div id="lines-admin"></div>
+
+
+    </div>
+
+
+  </div>
+
+
+</div>
+
+
+
+
+
+<!-- ═══════════════════ PUBLIC ═══════════════════ -->
+
+
+<div id="view-public" class="view">
+
+
+  <div class="topbar">
+
+
+    <img src="https://i.imgur.com/H1sQS4p.png" alt="Bolsillo Lleno x5" class="topbar-logo-img"/>
+
+
+    <div class="topbar-info">
+
+
+      <div class="info-chip">Ronda <span id="p-round">1</span></div>
+
+
+      <div class="info-chip">👁️ <span id="p-viewer-count">0</span> en vivo</div>
+
+
+      <div id="p-state-badge" class="state-badge state-idle">Inactivo</div>
+
+
+    </div>
+
+
+    <button class="btn-back" onclick="goTo('home')">← Inicio</button>
+
+
+  </div>
+
+
+  <div class="content">
+
+
+    <!-- LEFT: Prizes + Info -->
+
+
+    <div style="display:flex;flex-direction:column;gap:12px;overflow-y:auto;">
+
+
+      <div class="prize-card">
+
+
+        <div class="prize-label">Premio Principal</div>
+
+
+        <div class="prize-value" id="p-prize">$0</div>
+
+
+      </div>
+
+
+      <div class="prize-card accum">
+
+
+        <div class="prize-label">🤑 Acumulado</div>
+
+
+        <div class="prize-value" id="p-accum">$0</div>
+
+
+      </div>
+
+
+      <div class="prize-card" style="flex:1;">
+
+
+        <div class="prize-label">Valor Línea</div>
+
+
+        <div class="prize-value" id="p-price">$0</div>
+
+
+      </div>
+
+
+
+
+
+      <!-- Current ball (public) -->
+
+
+      <div class="current-ball-wrap" style="background:transparent;border-color:rgba(255,215,0,0.2);">
+
+
+        <div id="p-current-ball" class="current-ball empty">–</div>
+
+
+        <div class="ball-counter">BOLA: <span id="p-ball-count">0</span> / 75</div>
+
+
+        <div class="recent-balls" id="p-recent-balls"></div>
+
+
+      </div>
+
+
+    </div>
+
+
+
+
+
+    <!-- CENTER: Board public -->
+
+
+    <div class="panel" style="overflow-y:auto;">
+
+
+      <div class="panel-title">🎱 Tablero en Vivo</div>
+
+
+      <div class="board-wrap">
+
+
+        <div class="board-header">
+
+
+          <div class="col-label col-B">B</div>
+
+
+          <div class="col-label col-I">I</div>
+
+
+          <div class="col-label col-N">N</div>
+
+
+          <div class="col-label col-G">G</div>
+
+
+          <div class="col-label col-O">O</div>
+
+
+        </div>
+
+
+        <div class="board-grid" id="p-board-grid"></div>
+
+
+      </div>
+
+
+    </div>
+
+
+
+
+
+    <!-- RIGHT: Public lines -->
+
+
+    <div class="panel" style="overflow-y:auto;">
+
+
+      <div class="panel-title">👥 Jugadores</div>
+
+
+      <div class="pub-lines" id="p-lines-display"></div>
+
+
+    </div>
+
+
+  </div>
+
+
+</div>
+
+
+
+
+
+<!-- ═══════════════════ LINE MODAL ═══════════════════ -->
+
+
+<div class="modal-overlay" id="line-modal">
+
+
+  <div class="modal">
+
+
+    <button class="modal-close" onclick="closeModal('line-modal')">✕</button>
+
+
+    <div class="modal-title">✏️ LÍNEA <span id="modal-line-num">1</span></div>
+
+
+    <input type="hidden" id="modal-line-idx"/>
+
+
+    <input type="hidden" id="modal-archive-id" value=""/>
+
+
+    <div class="form-group" style="margin-bottom:10px;">
+
+
+      <label>Nombre del cliente</label>
+
+
+      <div style="display:flex;gap:6px;">
+
+
+        <input id="modal-name" type="text" placeholder="Ej: María García" style="flex:1"/>
+
+
+        <button type="button" class="btn btn-ghost btn-sm" style="white-space:nowrap;" onclick="pickContact()">📇 Contactos</button>
+
+
+      </div>
+
+
+    </div>
+
+
+    <div class="form-group" style="margin-bottom:10px;">
+
+
+      <label>Teléfono (opcional)</label>
+
+
+      <input id="modal-phone" type="tel" placeholder="+57 300 000 0000"/>
+
+
+    </div>
+
+
+    <div class="form-group" style="margin-bottom:10px;">
+
+
+      <label>Observaciones</label>
+
+
+      <input id="modal-notes" type="text" placeholder="Notas adicionales…"/>
+
+
+    </div>
+
+
+    <div class="form-group" style="margin-bottom:16px;">
+
+
+      <label>Estado del pago</label>
+
+
+      <div class="radio-group">
+
+
+        <label class="free-l">
+
+
+          <input type="radio" name="pay-status" value="free"/> ⬜ Libre
+
+
+        </label>
+
+
+        <label class="pending-l">
+
+
+          <input type="radio" name="pay-status" value="pending"/> ❌ Pendiente
+
+
+        </label>
+
+
+        <label class="paid-l">
+
+
+          <input type="radio" name="pay-status" value="paid"/> ✅ Pagó
+
+
+        </label>
+
+
+      </div>
+
+
+    </div>
+
+
+    <div class="btn-row">
+
+
+      <button class="btn btn-gold" onclick="saveLine()" style="flex:1">💾 Guardar</button>
+
+
+      <button class="btn btn-red btn-sm" onclick="deleteLine()">🗑️ Borrar</button>
+
+
+    </div>
+
+
+  </div>
+
+
+</div>
+
+
+
+
+
+<!-- ═══════════════════ MULTI-LINE MODAL (asignar varias líneas al mismo contacto) ═══════════════════ -->
+<div class="modal-overlay" id="multi-line-modal">
+  <div class="modal" style="max-width:460px;">
+    <button class="modal-close" onclick="closeModal('multi-line-modal')">✕</button>
+    <div class="modal-title">🔢 ASIGNAR VARIAS LÍNEAS</div>
+    <p style="font-size:11px;color:var(--gray);margin-bottom:10px;line-height:1.5;">
+      Marca las líneas que quieres asignar al mismo contacto (útil cuando un cliente compra varias hojas). Se sobrescribirán con los datos de abajo.
+    </p>
+    <div id="multi-line-checklist" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px;max-height:220px;overflow-y:auto;"></div>
+    <div class="form-group" style="margin-bottom:10px;">
+      <label>Nombre del cliente</label>
+      <div style="display:flex;gap:6px;">
+        <input id="multi-modal-name" type="text" placeholder="Ej: María García" style="flex:1"/>
+        <button type="button" class="btn btn-ghost btn-sm" style="white-space:nowrap;" onclick="pickContactMulti()">📇 Contactos</button>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:10px;">
+      <label>Teléfono (opcional)</label>
+      <input id="multi-modal-phone" type="tel" placeholder="+57 300 000 0000"/>
+    </div>
+    <div class="form-group" style="margin-bottom:10px;">
+      <label>Observaciones</label>
+      <input id="multi-modal-notes" type="text" placeholder="Notas adicionales…"/>
+    </div>
+    <div class="form-group" style="margin-bottom:16px;">
+      <label>Estado del pago</label>
+      <div class="radio-group">
+        <label class="free-l">
+          <input type="radio" name="multi-pay-status" value="free"/> ⬜ Libre
+        </label>
+        <label class="pending-l">
+          <input type="radio" name="multi-pay-status" value="pending" checked/> ❌ Pendiente
+        </label>
+        <label class="paid-l">
+          <input type="radio" name="multi-pay-status" value="paid"/> ✅ Pagó
+        </label>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-gold" onclick="saveMultiLine()" style="flex:1">💾 Asignar a las seleccionadas</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ ARCHIVED ROUND MODAL ═══════════════════ -->
+
+
+<div class="modal-overlay" id="archive-modal">
+
+
+  <div class="modal" style="max-width:480px;">
+
+
+    <button class="modal-close" onclick="closeModal('archive-modal')">✕</button>
+
+
+    <div class="modal-title">📋 Ronda <span id="archive-round-num">1</span></div>
+
+
+    <input type="hidden" id="modal-archive-current-id" value=""/>
+
+
+    <input type="hidden" id="modal-archive-current-round" value=""/>
+
+
+    <div id="archive-winner-info" style="display:none;background:rgba(212,175,55,0.08);border:1px solid rgba(212,175,55,0.25);border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:10px;line-height:1.6;"></div>
+
+
+    <p style="font-size:11px;color:var(--gray);margin-bottom:10px;">👥 Toca una línea para editarla.</p>
+
+
+    <div id="archive-lines-list" style="display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow-y:auto;margin-bottom:14px;"></div>
+
+
+    <button class="btn btn-red btn-sm" style="width:100%" onclick="deleteRoundFromHistory()">🗑️ Eliminar esta ronda del historial</button>
+
+
+  </div>
+
+
+</div>
+
+
+
+
+
+<!-- ═══════════════════ FIREBASE CONFIG MODAL ═══════════════════ -->
+
+
+<div class="modal-overlay" id="firebase-modal">
+
+
+  <div class="modal" style="max-width:520px;">
+
+
+    <button class="modal-close" onclick="closeModal('firebase-modal')">✕</button>
+
+
+    <div class="modal-title">🔥 CONFIGURAR FIREBASE</div>
+
+
+    <p style="font-size:12px;color:var(--gray);margin-bottom:12px;">Pega aquí tu objeto firebaseConfig de la consola de Firebase:</p>
+
+
+    <textarea id="firebase-config-input" style="
+
+
+      width:100%;height:180px;background:var(--bg3);border:1px solid var(--border);
+
+
+      color:var(--white);padding:10px;border-radius:8px;font-size:11px;font-family:monospace;resize:vertical;
+
+
+    " placeholder='{
+
+
+  "apiKey": "...",
+
+
+  "authDomain": "...",
+
+
+  "databaseURL": "https://...",
+
+
+  "projectId": "...",
+
+
+  "storageBucket": "...",
+
+
+  "messagingSenderId": "...",
+
+
+  "appId": "..."
+
+
+}'></textarea>
+
+
+    <div class="btn-row" style="margin-top:12px;">
+
+
+      <button class="btn btn-gold" onclick="applyFirebaseConfig()" style="flex:1">🔗 Conectar</button>
+
+
+      <button class="btn btn-ghost btn-sm" onclick="useOfflineMode()">📴 Modo offline (demo)</button>
+
+
+    </div>
+
+
+  </div>
+
+
+</div>
+
+
+
+
+
+<!-- ═══════════════════ WINNER OVERLAY ═══════════════════ -->
+
+
+<div class="winner-overlay" id="winner-overlay">
+
+
+  <div class="confetti-wrap" id="confetti-wrap"></div>
+
+
+  <div class="winner-trophy">🏆</div>
+
+
+  <div class="winner-title">¡GANADOR!</div>
+
+
+  <div id="wo-line-label" style="font-size:14px;color:var(--gray);letter-spacing:2px;">LÍNEA 7</div>
+
+
+  <div class="winner-name" id="wo-name">Pablo Castro</div>
+
+
+  <div class="winner-detail" id="wo-detail">Ha completado su línea</div>
+
+
+  <div class="winner-prize" id="wo-prize">$20.000</div>
+
+
+  <button class="btn btn-gold" id="wo-btn-roulette" style="margin-top:20px;display:none;" onclick="goToRouletteFromWinner()">🎡 Ir a la Ruleta</button>
+
+
+  <button class="btn btn-ghost btn-sm" id="wo-btn-skip" style="display:none;" onclick="finishRoundView()">✕ Cerrar (sin ruleta)</button>
+
+
+</div>
+
+
+
+
+
+<!-- ═══════════════════ ROULETTE OVERLAY ═══════════════════ -->
+
+
+<div class="roulette-overlay" id="roulette-overlay">
+
+
+  <div class="roulette-title">🎡 RULETA DEL ACUMULADO</div>
+
+
+  <div class="reel-frame">
+
+
+    <div class="reel-number" id="reel-number">–</div>
+
+
+  </div>
+
+
+  <div class="roulette-result" id="ro-result" style="display:none;">
+
+
+    <div class="roulette-number-label">Resultado</div>
+
+
+    <div class="roulette-msg" id="ro-msg"></div>
+
+
+    <div class="btn-row" style="margin-top:14px;">
+
+
+      <button class="btn btn-ghost" id="ro-btn-continue" onclick="closeRouletteOverlay()">Continuar</button>
+
+
+      <button class="btn btn-gold" id="ro-btn-finish" style="display:none;" onclick="finishRoundView()">🏁 Terminar Ronda</button>
+
+
+    </div>
+
+
+  </div>
+
+
+</div>
+
+
+
+
+
+<!-- ═══════════════════ TOAST ═══════════════════ -->
+
+
+<div class="toast" id="toast"></div>
+
+
+
+
+
+<script>
+
+
+/* ═══════════════════════════════════════════════
+
+
+   BINGO LINEAL — Application Logic
+
+
+   Board: 75 balls arranged as 15 rows × 5 cols
+
+
+   Row i (1-indexed) = Line i
+
+
+   Ball at row i, col j = i + (j-1)*15
+
+
+   e.g. Line 1: 1,16,31,46,61
+
+
+        Line 15: 15,30,45,60,75
+
+
+═══════════════════════════════════════════════ */
+
+
+
+
+
+// ─── Game State ──────────────────────────────
+
+
+let state = {
+
+
+  round: 1,
+
+
+  price: '$5.000',
+
+
+  prize: '$50.000',
+
+
+  accum: '$100.000',
+
+
+  status: 'idle',       // idle | active | paused | finished
+
+
+  balls: [],            // drawn balls in order
+
+
+  lines: Array.from({length:15}, (_,i) => ({
+
+
+    name: '', phone: '', notes: '', status: 'free'
+
+
+  })),
+
+
+  winner: null,         // { lineIdx, name, prize, ts }
+
+
+  accumWon: false,
+
+
+  roulette: null,        // { number, ts, wonAccum } — resultado sincronizado de la ruleta 1-15
+
+
+  history: [],
+
+
+  roundsArchive: [],     // [{id, round, date, time, lines:[...]}] snapshot of participants per past round
+
+
+};
+
+
+
+
+
+// ─── Configuración secreta del admin (línea/número forzados) ──
+
+
+// NUNCA se guarda dentro de `state` (que se transmite público vía saveToFirebase).
+
+
+// Se sincroniza en un nodo Firebase aparte, protegido por reglas solo-admin.
+
+
+let adminConfig = { forcedLine: null, forcedRoulette: null }; // 1-15 o null = aleatorio
+
+
+let roundForcedLine = null; // línea que quedó "armada" para la ronda activa (se consume al usarla)
+
+
+let lastRouletteTs = 0;
+
+
+let rouletteSpinTimeout = null;
+
+
+
+
+
+// ─── Auto mode ──────────────────────────────
+
+
+let autoInterval = null;
+
+
+let autoActive   = false;
+
+
+let remainingBalls = [];   // shuffled pool
+
+
+let lastWinnerTs = 0;
+
+
+
+
+
+// ─── Firebase (preconfigurado) ───────────────
+
+
+const FIREBASE_CONFIG = {
+
+
+  apiKey: "AIzaSyA2_BKI_kA3QdmXFEV08Pd3Vu2yWgJ15hU",
+
+
+  authDomain: "bolsillolleno-5d1f8.firebaseapp.com",
+
+
+  databaseURL: "https://bolsillolleno-5d1f8-default-rtdb.firebaseio.com",
+
+
+  projectId: "bolsillolleno-5d1f8",
+
+
+  storageBucket: "bolsillolleno-5d1f8.firebasestorage.app",
+
+
+  messagingSenderId: "589773139731",
+
+
+  appId: "1:589773139731:web:ab6495056a3697b752f4e6"
+
+
+};
+
+
+const ADMIN_UID = 'QpdUwY7avJf8WhZ9N7ZIdd4ZUZA3';
+
+
+
+
+
+let db = null;
+
+
+let offlineMode = false;
+
+
+let firebaseRef = null;
+
+
+let configRef = null;
+
+
+const FB_PATH = 'bolsillo-lleno-bingo';
+
+
+const FB_CONFIG_PATH = 'bolsillo-lleno-bingo-config'; // nodo aparte, solo-admin (ver reglas)
+const FB_PRESENCE_PATH = 'bolsillo-lleno-bingo-presence'; // nodo aparte: cuenta personas conectadas en vivo
+let presenceRef = null;
+
+
+
+
+
+// ─── Sounds (Web Audio) ─────────────────────
+
+
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+
+
+let audioCtx = null;
+
+
+function getAudio(){
+
+
+  if(!audioCtx) audioCtx = new AudioCtx();
+
+
+  return audioCtx;
+
+
+}
+
+
+function playBeep(freq=440, dur=0.15, type='sine'){
+
+
+  try{
+
+
+    const ac = getAudio();
+
+
+    const osc = ac.createOscillator();
+
+
+    const gain = ac.createGain();
+
+
+    osc.connect(gain); gain.connect(ac.destination);
+
+
+    osc.type = type; osc.frequency.value = freq;
+
+
+    gain.gain.setValueAtTime(0.3, ac.currentTime);
+
+
+    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+dur);
+
+
+    osc.start(); osc.stop(ac.currentTime+dur);
+
+
+  }catch(e){}
+
+
+}
+
+
+function playBallSound(){
+
+
+  playBeep(880,0.05,'sine');
+
+
+  setTimeout(()=>playBeep(1100,0.1,'triangle'),60);
+
+
+}
+
+
+function playWinnerSound(){
+
+
+  [523,659,784,1047].forEach((f,i)=>setTimeout(()=>playBeep(f,0.3,'square'),i*120));
+
+
+}
+
+
+
+
+
+// ─── Router ─────────────────────────────────
+
+
+function goTo(view){
+
+
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+
+
+  document.getElementById('view-'+view).classList.add('active');
+
+
+  if(view==='admin'||view==='public'){
+
+
+    renderAll();
+
+
+    if(state.winner) showWinner(state.winner);
+
+
+  }
+
+
+}
+
+
+
+
+
+// ─── Auth ────────────────────────────────────
+
+
+let authReady = false;
+
+
+let currentUser = null;
+
+
+
+
+
+function goToAdmin(){
+
+
+  if(!db){
+
+
+    showToast('Conectando con Firebase, espera un momento…','error');
+
+
+    return;
+
+
+  }
+
+
+  if(currentUser){
+
+
+    goTo('admin');
+
+
+  } else {
+
+
+    goTo('login');
+
+
+  }
+
+
+}
+
+
+function doLogin(){
+
+
+  const email = document.getElementById('login-email').value.trim();
+
+
+  const pass  = document.getElementById('login-password').value;
+
+
+  const errEl = document.getElementById('login-error');
+
+
+  errEl.style.display = 'none';
+
+
+  if(!firebase.apps.length || !firebase.auth){
+
+
+    errEl.textContent = 'Configura Firebase primero.';
+
+
+    errEl.style.display = 'block';
+
+
+    return;
+
+
+  }
+
+
+  firebase.auth().signInWithEmailAndPassword(email, pass)
+
+
+    .then(cred=>{
+
+
+      if(cred.user.uid !== ADMIN_UID){
+
+
+        firebase.auth().signOut();
+
+
+        errEl.textContent = 'Esta cuenta no tiene permisos de administrador.';
+
+
+        errEl.style.display = 'block';
+
+
+        return;
+
+
+      }
+
+
+      currentUser = cred.user;
+
+
+      showToast('Bienvenido, '+(cred.user.email||'admin'),'success');
+
+
+      goTo('admin');
+
+
+    })
+
+
+    .catch(err=>{
+
+
+      errEl.textContent = traduceAuthError(err.code);
+
+
+      errEl.style.display = 'block';
+
+
+    });
+
+
+}
+
+
+function traduceAuthError(code){
+
+
+  const map = {
+
+
+    'auth/invalid-email':'Correo inválido.',
+
+
+    'auth/user-not-found':'Usuario no encontrado.',
+
+
+    'auth/wrong-password':'Contraseña incorrecta.',
+
+
+    'auth/invalid-credential':'Credenciales incorrectas.',
+
+
+    'auth/too-many-requests':'Demasiados intentos. Intenta más tarde.',
+
+
+  };
+
+
+  return map[code] || ('Error al iniciar sesión ('+code+')');
+
+
+}
+
+
+function doLogout(){
+
+
+  if(firebase.apps.length && firebase.auth){
+
+
+    firebase.auth().signOut().then(()=>{
+
+
+      currentUser = null;
+
+
+      goTo('home');
+
+
+    });
+
+
+  } else {
+
+
+    currentUser = null;
+
+
+    goTo('home');
+
+
+  }
+
+
+}
+
+
+function watchAuthState(){
+
+
+  if(!firebase.apps.length) return;
+
+
+  firebase.auth().onAuthStateChanged(user=>{
+
+
+    if(user && user.uid === ADMIN_UID){
+
+
+      currentUser = user;
+
+
+      watchAdminConfig(); // solo el admin autenticado puede leer la config forzada
+
+
+    } else {
+
+
+      currentUser = null;
+
+
+      adminConfig = { forcedLine: null, forcedRoulette: null };
+
+
+      if(configRef){ configRef.off(); configRef = null; }
+
+
+      if(user){
+
+
+        // Logged in but not the authorized admin
+
+
+        firebase.auth().signOut();
+
+
+        showToast('Esta cuenta no tiene permisos de administrador','error');
+
+
+      }
+
+
+    }
+
+
+  });
+
+
+}
+
+
+
+
+
+// ─── Config secreta (línea/ruleta forzada) ──────
+
+
+function watchAdminConfig(){
+
+
+  if(!db || !currentUser) return;
+
+
+  configRef = db.ref(FB_CONFIG_PATH);
+
+
+  configRef.on('value', snap=>{
+
+
+    const data = snap.val();
+
+
+    adminConfig = { forcedLine: (data&&data.forcedLine)||null, forcedRoulette: (data&&data.forcedRoulette)||null };
+
+
+    renderAdminConfigPanel();
+
+
+  });
+
+
+}
+
+
+function saveAdminConfig(){
+
+
+  if(!currentUser || !configRef){ showToast('Inicia sesión de admin para guardar esto.','error'); return; }
+
+
+  const fl = document.getElementById('sel-forced-line').value;
+
+
+  const fr = document.getElementById('sel-forced-roulette').value;
+
+
+  adminConfig.forcedLine = fl ? parseInt(fl) : null;
+
+
+  adminConfig.forcedRoulette = fr ? parseInt(fr) : null;
+
+
+  configRef.set(adminConfig).then(()=>{
+
+
+    showToast('Configuración guardada (no visible al público)','success');
+
+
+    renderAdminConfigPanel();
+
+
+  }).catch(e=>showToast('Error guardando config: '+e.message,'error'));
+
+
+}
+
+
+function clearAdminConfig(){
+
+
+  adminConfig = { forcedLine: null, forcedRoulette: null };
+
+
+  if(configRef) configRef.set(adminConfig);
+
+
+  renderAdminConfigPanel();
+
+
+  showToast('Configuración forzada desactivada','success');
+
+
+}
+
+
+function renderAdminConfigPanel(){
+
+
+  const selL = document.getElementById('sel-forced-line');
+
+
+  const selR = document.getElementById('sel-forced-roulette');
+
+
+  if(selL) selL.value = adminConfig.forcedLine || '';
+
+
+  if(selR) selR.value = adminConfig.forcedRoulette || '';
+
+
+  const badge = document.getElementById('forced-config-badge');
+
+
+  if(badge){
+
+
+    const active = adminConfig.forcedLine || adminConfig.forcedRoulette;
+
+
+    badge.style.display = active ? 'block' : 'none';
+
+
+    if(active){
+
+
+      badge.textContent = `⚠️ Activo: ${adminConfig.forcedLine ? 'Línea '+adminConfig.forcedLine+' ganará' : 'Línea aleatoria'}${adminConfig.forcedRoulette ? ' · Ruleta caerá en '+adminConfig.forcedRoulette : ' · Ruleta aleatoria'} (se usa 1 vez y se desactiva sola)`;
+
+
+    }
+
+
+  }
+
+
+}
+
+
+
+
+
+// ─── Firebase Setup ─────────────────────────
+
+
+function openFirebaseConfig(){
+
+
+  const saved = localStorage.getItem('bl-firebase-config');
+
+
+  if(saved) document.getElementById('firebase-config-input').value = saved;
+
+
+  openModal('firebase-modal');
+
+
+}
+
+
+function applyFirebaseConfig(){
+
+
+  let raw = document.getElementById('firebase-config-input').value.trim();
+
+
+  try{
+
+
+    const cfg = JSON.parse(raw);
+
+
+    if(!cfg.databaseURL) throw new Error('Falta databaseURL');
+
+
+    localStorage.setItem('bl-firebase-config', raw);
+
+
+    initFirebase(cfg);
+
+
+    closeModal('firebase-modal');
+
+
+    showToast('Firebase conectado ✓','success');
+
+
+  }catch(e){
+
+
+    showToast('Config inválida: '+e.message,'error');
+
+
+  }
+
+
+}
+
+
+function useOfflineMode(){
+
+
+  offlineMode = true;
+
+
+  db = null;
+
+
+  closeModal('firebase-modal');
+
+
+  document.getElementById('firebase-status').textContent = '📴 Modo offline (demo) – sin sincronización en tiempo real';
+
+
+  showToast('Modo demo activo','success');
+
+
+}
+
+
+function initFirebase(cfg){
+
+
+  try{
+
+
+    // If already initialized, reuse
+
+
+    if(firebase.apps.length){
+
+
+      firebase.app().delete().then(()=>doInitFirebase(cfg));
+
+
+    } else {
+
+
+      doInitFirebase(cfg);
+
+
+    }
+
+
+  }catch(e){ showToast('Error Firebase: '+e.message,'error'); }
+
+
+}
+
+
+function doInitFirebase(cfg){
+
+
+  try{
+
+
+    firebase.initializeApp(cfg);
+
+
+    db = firebase.database();
+
+
+    firebaseRef = db.ref(FB_PATH);
+
+
+    // Listen for remote changes
+
+
+    let firstSnapshot = true;
+
+
+    firebaseRef.on('value', snap=>{
+
+
+      const data = snap.val();
+
+
+      if(data){
+
+
+        state = {...state, ...data};
+
+
+        if(!data.lines) state.lines = Array.from({length:15},()=>({name:'',phone:'',notes:'',status:'free'}));
+
+
+        if(!data.balls) state.balls = [];
+
+
+        if(!data.history) state.history = [];
+
+
+        if(!data.roundsArchive) state.roundsArchive = [];
+
+
+        renderAll();
+
+
+        if(firstSnapshot){
+
+
+          // En la PRIMERA sincronización (recién se abrió la página) no
+
+
+          // reproducimos el overlay de ganador/ruleta de una ronda anterior
+
+
+          // que haya quedado sin cerrar: solo "marcamos como ya vistos" esos
+
+
+          // resultados. Así evitamos que la ruleta/ganador se disparen solos
+
+
+          // al entrar a la página.
+
+
+          firstSnapshot = false;
+
+
+          lastWinnerTs = state.winner ? state.winner.ts : 0;
+
+
+          lastRouletteTs = state.roulette ? state.roulette.ts : 0;
+
+
+        } else {
+
+
+          checkWinnerDisplay();
+
+
+          checkRouletteDisplay();
+
+
+        }
+
+
+      }
+
+
+    });
+
+
+    document.getElementById('firebase-status').textContent = '🟢 Firebase conectado';
+
+
+    showToast('Firebase listo ✓','success');
+
+
+    watchAuthState();
+
+
+    watchPresence();
+
+
+  }catch(e){ showToast('Error al inicializar: '+e.message,'error'); }
+
+
+}
+
+
+// ─── Presencia en vivo (cuántas personas tienen la página abierta) ────
+// Cada pestaña/dispositivo conectado se registra con un nodo propio bajo
+// FB_PRESENCE_PATH y se auto-elimina al desconectarse (onDisconnect),
+// así el conteo siempre refleja quién sigue realmente conectado. Corre
+// igual en el panel admin y en la pantalla pública: no depende de qué
+// vista esté activa.
+function watchPresence(){
+  if(!db) return;
+  const myRef = db.ref(FB_PRESENCE_PATH).push();
+  presenceRef = myRef;
+  const connectedRef = db.ref('.info/connected');
+  connectedRef.on('value', snap=>{
+    if(snap.val() === true){
+      myRef.onDisconnect().remove();
+      myRef.set(true);
+    }
+  });
+  db.ref(FB_PRESENCE_PATH).on('value', snap=>{
+    const count = snap.numChildren();
+    const av = document.getElementById('a-viewer-count');
+    if(av) av.textContent = count;
+    const pv = document.getElementById('p-viewer-count');
+    if(pv) pv.textContent = count;
+  });
+}
+
+
+function saveToFirebase(){
+
+
+  if(offlineMode || !db) { renderAll(); checkWinnerDisplay(); checkRouletteDisplay(); return; }
+
+
+  firebaseRef.set(state).catch(e=>showToast('Error guardando: '+e.message,'error'));
+
+
+}
+
+
+
+
+
+// ─── State Init ─────────────────────────────
+
+
+function tryLoadSaved(){
+
+
+  const saved = localStorage.getItem('bl-state');
+
+
+  if(saved){
+
+
+    try{
+
+
+      const p = JSON.parse(saved);
+
+
+      state = {...state, ...p};
+
+
+      if(!state.lines||state.lines.length!==15)
+
+
+        state.lines = Array.from({length:15},()=>({name:'',phone:'',notes:'',status:'free'}));
+
+
+      if(!state.roundsArchive) state.roundsArchive = [];
+
+
+    }catch(e){}
+
+
+  }
+
+
+  // Auto-connect to preconfigured Firebase project
+
+
+  initFirebase(FIREBASE_CONFIG);
+
+
+}
+
+
+
+
+
+function saveLocal(){
+
+
+  localStorage.setItem('bl-state', JSON.stringify(state));
+
+
+}
+
+
+
+
+
+// ─── Ball Logic ─────────────────────────────
+
+
+// Line i (0-indexed): balls are [i+1, i+16, i+31, i+46, i+61]
+
+
+function getBallsForLine(lineIdx){
+
+
+  const i = lineIdx; // 0-based
+
+
+  return [i+1, i+16, i+31, i+46, i+61];
+
+
+}
+
+
+
+
+
+function drawBall(){
+
+
+  if(state.status !== 'active') return;
+
+
+  if(state.balls.length >= 75){ showToast('Ya se cantaron las 75 balotas','error'); return; }
+
+
+
+
+
+  // Build pool of remaining balls
+
+
+  if(remainingBalls.length === 0){
+
+
+    const all = Array.from({length:75},(_,i)=>i+1);
+
+
+    const drawn = new Set(state.balls);
+
+
+    remainingBalls = all.filter(b=>!drawn.has(b));
+
+
+    // Shuffle
+
+
+    for(let i=remainingBalls.length-1;i>0;i--){
+
+
+      const j=Math.floor(Math.random()*(i+1));
+
+
+      [remainingBalls[i],remainingBalls[j]]=[remainingBalls[j],remainingBalls[i]];
+
+
+    }
+
+
+  }
+
+
+
+
+
+  const ball = remainingBalls.pop();
+
+
+  state.balls = [...state.balls, ball];
+
+
+  saveToFirebase();
+
+
+  saveLocal();
+
+
+  playBallSound();
+
+
+  renderAll();
+
+
+  checkWinner();
+
+
+}
+
+
+
+
+
+function shuffleRemaining(){
+
+
+  const all = Array.from({length:75},(_,i)=>i+1);
+
+
+  const drawn = new Set(state.balls);
+
+
+  remainingBalls = all.filter(b=>!drawn.has(b));
+
+
+  for(let i=remainingBalls.length-1;i>0;i--){
+
+
+    const j=Math.floor(Math.random()*(i+1));
+
+
+    [remainingBalls[i],remainingBalls[j]]=[remainingBalls[j],remainingBalls[i]];
+
+
+  }
+
+
+}
+
+
+
+
+
+// Baraja el mazo garantizando que `lineIdx` (0-based) sea la primera línea
+
+
+// en completarse, sin que otra línea gane antes. El orden se ve azaroso:
+
+
+// las balotas de la línea forzada se reparten en posiciones aleatorias,
+
+
+// y ninguna otra línea recibe sus 5 balotas antes del punto de corte.
+
+
+function buildForcedOrder(lineIdx){
+
+
+  const forcedBalls = getBallsForLine(lineIdx); // 5 balotas de la línea a forzar
+
+
+  const forcedSet = new Set(forcedBalls);
+
+
+  const otherLines = []; // balotas de las otras 14 líneas
+
+
+  for(let i=0;i<15;i++){ if(i!==lineIdx) otherLines.push(getBallsForLine(i)); }
+
+
+
+
+
+  // Por cada línea rival, reservamos 1 balota "bloqueadora" que solo puede
+
+
+  // salir DESPUÉS del corte, así nunca junta sus 5 balotas antes de tiempo.
+
+
+  const blockers = [];
+
+
+  const freePool = []; // hasta 4 balotas por línea rival, libres de usar antes o después
+
+
+  otherLines.forEach(balls=>{
+
+
+    const shuffled = [...balls].sort(()=>Math.random()-0.5);
+
+
+    blockers.push(shuffled[0]);
+
+
+    freePool.push(...shuffled.slice(1));
+
+
+  });
+
+
+  // Mezclar freePool
+
+
+  for(let i=freePool.length-1;i>0;i--){
+
+
+    const j=Math.floor(Math.random()*(i+1));
+
+
+    [freePool[i],freePool[j]]=[freePool[j],freePool[i]];
+
+
+  }
+
+
+
+
+
+  // Punto de corte K = posición (1-indexada) donde cae la 5ª balota forzada.
+
+
+  // Se elige entre 18 y 55 para que no gane ni demasiado pronto ni al final.
+
+
+  const minK = 18, maxK = Math.min(55, 5 + freePool.length);
+
+
+  const K = Math.floor(Math.random()*(maxK-minK+1))+minK;
+
+
+  const beforeOtherCount = Math.max(0, K-5);
+
+
+  const beforePool = freePool.slice(0, beforeOtherCount);
+
+
+  const afterPool  = freePool.slice(beforeOtherCount).concat(blockers);
+
+
+  for(let i=afterPool.length-1;i>0;i--){
+
+
+    const j=Math.floor(Math.random()*(i+1));
+
+
+    [afterPool[i],afterPool[j]]=[afterPool[j],afterPool[i]];
+
+
+  }
+
+
+
+
+
+  // Primeras K-1 posiciones: 4 balotas forzadas + beforePool, mezcladas.
+
+
+  const forced4 = forcedBalls.slice(0,4);
+
+
+  const lastForced = forcedBalls[4];
+
+
+  const firstChunk = [...forced4, ...beforePool];
+
+
+  for(let i=firstChunk.length-1;i>0;i--){
+
+
+    const j=Math.floor(Math.random()*(i+1));
+
+
+    [firstChunk[i],firstChunk[j]]=[firstChunk[j],firstChunk[i]];
+
+
+  }
+
+
+
+
+
+  const order = [...firstChunk, lastForced, ...afterPool];
+
+
+  // drawBall() extrae con .pop(), así que invertimos: el último del array
+
+
+  // es el primero en salir.
+
+
+  remainingBalls = order.slice().reverse();
+
+
+}
+
+
+
+
+
+// ─── Winner Detection ───────────────────────
+
+
+function checkWinner(){
+
+
+  const calledSet = new Set(state.balls);
+
+
+  for(let i=0;i<15;i++){
+
+
+    const lineBalls = getBallsForLine(i);
+
+
+    if(lineBalls.every(b=>calledSet.has(b))){
+
+
+      // Check we haven't already announced this winner
+
+
+      if(state.winner && state.winner.lineIdx === i) continue;
+
+
+      if(state.status === 'finished') continue;
+
+
+      // WINNER!
+
+
+      pauseAutoMode();
+
+
+      state.winner = {
+
+
+        lineIdx: i,
+
+
+        name: state.lines[i].name || `Línea ${i+1}`,
+
+
+        prize: state.prize,
+
+
+        ts: Date.now()
+
+
+      };
+
+
+      state.status = 'finished';
+
+
+      state.roulette = null; // limpiar resultado de ruleta de la ronda anterior
+
+
+      saveToFirebase();
+
+
+      saveLocal();
+
+
+      renderAll();
+
+
+      saveHistory();
+
+
+      // La ruleta YA NO gira sola: el admin la dispara a mano con el botón
+
+
+      // "🎡 Ir a la Ruleta" que aparece en el overlay de ganador (ver
+
+
+      // updateWinnerRouletteButton / goToRouletteFromWinner).
+
+
+      return;
+
+
+    }
+
+
+  }
+
+
+}
+
+
+// Gira la ruleta 1-15. Si hay un número forzado configurado, se usa (y se
+
+
+// desactiva automáticamente); si no, sale un número al azar.
+
+
+function spinRoulette(){
+
+
+  if(rouletteSpinTimeout){ clearTimeout(rouletteSpinTimeout); rouletteSpinTimeout=null; }
+
+
+  if(!state.winner || state.roulette) return;
+
+
+  let number;
+
+
+  let wasForced = false;
+
+
+  if(adminConfig.forcedRoulette){
+
+
+    number = adminConfig.forcedRoulette;
+
+
+    wasForced = true;
+
+
+    adminConfig.forcedRoulette = null;
+
+
+    if(configRef) configRef.set(adminConfig);
+
+
+    renderAdminConfigPanel();
+
+
+  } else {
+
+
+    number = Math.floor(Math.random()*15)+1;
+
+
+  }
+
+
+  const wonAccum = number === (state.winner.lineIdx+1);
+
+
+  state.roulette = { number, ts: Date.now(), wonAccum };
+
+
+  if(wonAccum) state.accumWon = true;
+
+
+  saveToFirebase();
+
+
+  saveLocal();
+
+
+  renderAll();
+
+
+  updateHistoryWithRoulette();
+
+
+  if(wasForced) showToast('Ruleta girada con número forzado (se desactivó automáticamente)','success');
+
+
+}
+
+
+function checkWinnerDisplay(){
+
+
+  // Called after every state update (local or remote). Shows winner overlay
+
+
+  // on EVERY connected client (admin + público en sala).
+
+
+  if(state.winner && state.winner.ts && state.winner.ts !== lastWinnerTs){
+
+
+    lastWinnerTs = state.winner.ts;
+
+
+    showWinner(state.winner);
+
+
+    playWinnerSound();
+
+
+  }
+
+
+  if(!state.winner){
+
+
+    const wo = document.getElementById('winner-overlay');
+
+
+    if(wo) wo.classList.remove('open');
+
+
+  }
+
+
+}
+
+
+function checkRouletteDisplay(){
+
+
+  // Igual que checkWinnerDisplay: se ejecuta en TODOS los clientes cuando
+
+
+  // llega un resultado de ruleta nuevo (ts distinto), y dispara la
+
+
+  // animación de giro en vivo hasta caer en el número ya decidido.
+
+
+  if(state.roulette && state.roulette.ts && state.roulette.ts !== lastRouletteTs){
+
+
+    lastRouletteTs = state.roulette.ts;
+
+
+    showRoulette(state.roulette);
+
+
+  }
+
+
+  if(!state.roulette){
+
+
+    const ro = document.getElementById('roulette-overlay');
+
+
+    if(ro) ro.classList.remove('open');
+
+
+  }
+
+
+}
+
+
+
+
+
+// ─── Auto Mode ──────────────────────────────
+
+
+function toggleAuto(){
+
+
+  if(!autoActive){
+
+
+    startAutoMode();
+
+
+  } else {
+
+
+    pauseAutoMode();
+
+
+  }
+
+
+}
+
+
+function startAutoMode(){
+
+
+  if(state.status !== 'active') return;
+
+
+  shuffleRemaining();
+
+
+  autoActive = true;
+
+
+  const speed = parseInt(document.getElementById('sel-speed').value) || 3000;
+
+
+  autoInterval = setInterval(()=>{
+
+
+    if(state.status !== 'active'){ pauseAutoMode(); return; }
+
+
+    if(state.balls.length >= 75){ pauseAutoMode(); return; }
+
+
+    drawBall();
+
+
+  }, speed);
+
+
+  document.getElementById('btn-auto').classList.add('active');
+
+
+  document.getElementById('auto-label').textContent = '⛔ Detener Auto';
+
+
+}
+
+
+function pauseAutoMode(){
+
+
+  autoActive = false;
+
+
+  clearInterval(autoInterval);
+
+
+  autoInterval = null;
+
+
+  const btn = document.getElementById('btn-auto');
+
+
+  if(btn){ btn.classList.remove('active'); }
+
+
+  const lbl = document.getElementById('auto-label');
+
+
+  if(lbl) lbl.textContent = 'Modo Automático';
+
+
+}
+
+
+function updateSpeed(){
+
+
+  if(autoActive){ pauseAutoMode(); startAutoMode(); }
+
+
+}
+
+
+
+
+
+// ─── Game Controls ───────────────────────────
+
+
+function startGame(){
+
+
+  state.status = 'active';
+
+
+  if(adminConfig.forcedLine){
+
+
+    buildForcedOrder(adminConfig.forcedLine-1);
+
+
+    roundForcedLine = adminConfig.forcedLine; // se consume: solo aplica a esta ronda
+
+
+    adminConfig.forcedLine = null;
+
+
+    if(configRef) configRef.set(adminConfig);
+
+
+    renderAdminConfigPanel();
+
+
+    showToast('Ronda iniciada con línea forzada (se desactivó automáticamente)','success');
+
+
+  } else {
+
+
+    shuffleRemaining();
+
+
+    showToast('¡Juego iniciado!','success');
+
+
+  }
+
+
+  saveToFirebase(); saveLocal();
+
+
+  renderAll();
+
+
+}
+
+
+function pauseGame(){
+
+
+  pauseAutoMode();
+
+
+  state.status = 'paused';
+
+
+  saveToFirebase(); saveLocal();
+
+
+  renderAll();
+
+
+}
+
+
+function resumeGame(){
+
+
+  state.status = 'active';
+
+
+  saveToFirebase(); saveLocal();
+
+
+  renderAll();
+
+
+}
+
+
+function stopGame(){
+
+
+  pauseAutoMode();
+
+
+  state.status = 'finished';
+
+
+  saveToFirebase(); saveLocal();
+
+
+  renderAll();
+
+
+  showToast('Juego finalizado','error');
+
+
+}
+
+
+function confirmReset(){
+
+
+  if(!confirm('¿Reiniciar el tablero? Se borrarán las balotas cantadas.')) return;
+
+
+  resetBoard();
+
+
+}
+
+
+function resetBoard(){
+
+
+  pauseAutoMode();
+
+
+  if(rouletteSpinTimeout){ clearTimeout(rouletteSpinTimeout); rouletteSpinTimeout=null; }
+
+
+  state.balls = [];
+
+
+  state.winner = null;
+
+
+  state.roulette = null;
+
+
+  state.status = 'idle';
+
+
+  remainingBalls = [];
+
+
+  closeRouletteOverlay();
+
+
+  saveToFirebase(); saveLocal();
+
+
+  renderAll();
+
+
+  showToast('Tablero reiniciado','success');
+
+
+}
+
+
+function getHistoryEntries(){
+
+
+  const archive = state.roundsArchive||[];
+
+
+  const hist = state.history||[];
+
+
+  const usedRounds = new Set();
+
+
+  const entries = archive.map(a=>{
+
+
+    usedRounds.add(String(a.round));
+
+
+    const h = hist.find(x=>String(x.round)===String(a.round));
+
+
+    return { archiveId:a.id, round:a.round, date:a.date, time:a.time, lines:a.lines, hist:h||null };
+
+
+  });
+
+
+  hist.forEach(h=>{
+
+
+    if(!usedRounds.has(String(h.round))){
+
+
+      entries.push({ archiveId:null, round:h.round, date:h.date, time:h.time, lines:null, hist:h });
+
+
+    }
+
+
+  });
+
+
+  entries.sort((a,b)=> (parseInt(b.round)||0) - (parseInt(a.round)||0));
+
+
+  return entries;
+
+
+}
+
+
+function openRoundDetail(archiveIdRaw, round){
+
+
+  const archiveId = archiveIdRaw ? parseInt(archiveIdRaw) : null;
+
+
+  const entry = archiveId ? (state.roundsArchive||[]).find(a=>a.id===archiveId) : null;
+
+
+  const h = (state.history||[]).find(x=>String(x.round)===String(round));
+
+
+  document.getElementById('archive-round-num').textContent = round;
+
+
+  document.getElementById('modal-archive-current-id').value = archiveId || '';
+
+
+  document.getElementById('modal-archive-current-round').value = round;
+
+
+
+
+
+  const winnerEl = document.getElementById('archive-winner-info');
+
+
+  if(h){
+
+
+    winnerEl.innerHTML = `🏆 Ganador: <strong>${h.winner}</strong>${h.line && h.line!=='—' ? ' · '+h.line : ''}<br>💰 Premio: ${h.prize}${h.roulette ? `<br>🎡 Ruleta: ${h.roulette}${h.wonAccum ? ' · 🤑 ¡Ganó el Acumulado!' : ''}` : ''}`;
+
+
+    winnerEl.style.display = 'block';
+
+
+  } else {
+
+
+    winnerEl.innerHTML = '';
+
+
+    winnerEl.style.display = 'none';
+
+
+  }
+
+
+
+
+
+  const linesEl = document.getElementById('archive-lines-list');
+
+
+  if(entry){
+
+
+    const statusIcon = {free:'⬜',pending:'❌',paid:'✅'};
+
+
+    linesEl.innerHTML = entry.lines.map((l,i)=>`
+
+
+      <div onclick="openLineModal(${i}, ${archiveId})" style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 12px;cursor:pointer;">
+
+
+        <span style="font-size:13px;">${statusIcon[l.status||'free']} Línea ${i+1}: ${l.name ? l.name : '<span style="color:var(--gray)">vacía</span>'}</span>
+
+
+        <span style="font-size:11px;color:var(--gray);">${l.phone||''}</span>
+
+
+      </div>
+
+
+    `).join('');
+
+
+  } else {
+
+
+    linesEl.innerHTML = '<p style="color:var(--gray);font-size:12px;">No hay datos de jugadores guardados para esta ronda.</p>';
+
+
+  }
+
+
+  openModal('archive-modal');
+
+
+}
+
+
+function deleteRoundFromHistory(){
+
+
+  const archiveIdRaw = document.getElementById('modal-archive-current-id').value;
+
+
+  const round = document.getElementById('modal-archive-current-round').value;
+
+
+  const archiveId = archiveIdRaw ? parseInt(archiveIdRaw) : null;
+
+
+  if(!confirm(`¿Eliminar del historial la Ronda ${round}? Esta acción no se puede deshacer.`)) return;
+
+
+  state.roundsArchive = (state.roundsArchive||[]).filter(a=>a.id!==archiveId);
+
+
+  state.history = (state.history||[]).filter(h=>String(h.round)!==String(round));
+
+
+  saveToFirebase(); saveLocal();
+
+
+  closeModal('archive-modal');
+
+
+  renderHistory();
+
+
+  showToast('Ronda eliminada del historial','success');
+
+
+}
+
+
+function clearAllHistory(){
+
+
+  if(!(state.roundsArchive||[]).length && !(state.history||[]).length){
+
+
+    showToast('El historial ya está vacío','error');
+
+
+    return;
+
+
+  }
+
+
+  if(!confirm('¿Limpiar TODO el historial de rondas? Esta acción no se puede deshacer.')) return;
+
+
+  state.roundsArchive = [];
+
+
+  state.history = [];
+
+
+  saveToFirebase(); saveLocal();
+
+
+  renderHistory();
+
+
+  showToast('Historial limpiado por completo','success');
+
+
+}
+
+
+
+
+
+function newRound(){
+
+
+  const hasParticipants = state.lines.some(l=>l.name && l.name.trim()!=='');
+
+
+  if(hasParticipants && !confirm(
+
+
+    `Esto archivará la lista de participantes de la Ronda ${state.round} (la podrás ver/editar en Historial) y comenzará la Ronda ${(parseInt(state.round)||1)+1} con líneas vacías.\n\n¿Deseas continuar?`
+
+
+  )) return;
+
+
+  pauseAutoMode();
+
+
+  if(rouletteSpinTimeout){ clearTimeout(rouletteSpinTimeout); rouletteSpinTimeout=null; }
+
+
+  const accumWon = state.accumWon;
+
+
+  // Archive a snapshot of this round's participants before wiping them
+
+
+  if(hasParticipants){
+
+
+    state.roundsArchive = [{
+
+
+      id: Date.now(),
+
+
+      round: state.round,
+
+
+      date: new Date().toLocaleDateString('es-CO'),
+
+
+      time: new Date().toLocaleTimeString('es-CO'),
+
+
+      lines: JSON.parse(JSON.stringify(state.lines)),
+
+
+    }, ...(state.roundsArchive||[])].slice(0,50);
+
+
+  }
+
+
+  state.balls = [];
+
+
+  state.winner = null;
+
+
+  state.roulette = null;
+
+
+  state.status = 'idle';
+
+
+  state.lines = Array.from({length:15},()=>({name:'',phone:'',notes:'',status:'free'}));
+
+
+  state.round = (parseInt(state.round)||1) + 1;
+
+
+  if(accumWon) state.accum = '$0';
+
+
+  state.accumWon = false;
+
+
+  remainingBalls = [];
+
+
+  closeRouletteOverlay();
+
+
+  document.getElementById('inp-round').value = state.round;
+
+
+  saveToFirebase(); saveLocal();
+
+
+  renderAll();
+
+
+  showToast(`Nueva Ronda ${state.round} iniciada`,'success');
+
+
+}
+
+
+function saveRoundInfo(){
+
+
+  state.round   = parseInt(document.getElementById('inp-round').value)||1;
+
+
+  state.price   = document.getElementById('inp-price').value;
+
+
+  state.prize   = document.getElementById('inp-prize').value;
+
+
+  state.accum   = document.getElementById('inp-accum').value;
+
+
+  saveToFirebase(); saveLocal();
+
+
+  renderAll();
+
+
+  showToast('Información guardada','success');
+
+
+}
+
+
+
+
+
+// ─── History ────────────────────────────────
+
+
+function saveHistory(){
+
+
+  const now = new Date();
+
+
+  const entry = {
+
+
+    date: now.toLocaleDateString('es-CO'),
+
+
+    time: now.toLocaleTimeString('es-CO'),
+
+
+    round: state.round,
+
+
+    winner: state.winner ? state.winner.name : '—',
+
+
+    line: state.winner ? `Línea ${state.winner.lineIdx+1}` : '—',
+
+
+    prize: state.prize,
+
+
+    balls: state.balls.length,
+
+
+    roulette: null,
+
+
+    wonAccum: false,
+
+
+  };
+
+
+  state.history = [entry, ...(state.history||[])].slice(0,50);
+
+
+  saveToFirebase(); saveLocal();
+
+
+}
+
+
+// Se llama cuando la ruleta ya giró: completa el registro de historial de
+
+
+// esta ronda (que se guardó antes, apenas se supo el ganador) con el
+
+
+// resultado de la ruleta y si se llevó el acumulado.
+
+
+function updateHistoryWithRoulette(){
+
+
+  if(!state.history || !state.history.length || !state.roulette) return;
+
+
+  state.history[0].roulette = state.roulette.number;
+
+
+  state.history[0].wonAccum = !!state.roulette.wonAccum;
+
+
+  saveToFirebase(); saveLocal();
+
+
+}
+
+
+
+
+
+// ─── Lines CRUD ─────────────────────────────
+
+
+// archiveId: null = current/live round. Otherwise edits a past round's archived snapshot.
+
+
+async function pickContact(){
+
+
+  if(!('contacts' in navigator && 'ContactsManager' in window)){
+
+
+    showToast('Tu navegador no soporta acceso a contactos. Usa Chrome en Android.','error');
+
+
+    return;
+
+
+  }
+
+
+  try{
+
+
+    const props = ['name','tel'];
+
+
+    const opts = {multiple:false};
+
+
+    const contacts = await navigator.contacts.select(props, opts);
+
+
+    if(contacts && contacts.length){
+
+
+      const c = contacts[0];
+
+
+      if(c.name && c.name.length) document.getElementById('modal-name').value = c.name[0];
+
+
+      if(c.tel && c.tel.length) document.getElementById('modal-phone').value = c.tel[0];
+
+
+    }
+
+
+  }catch(err){
+
+
+    console.error('Error al leer contacto:', err);
+
+
+    showToast('No se pudo acceder a los contactos.','error');
+
+
+  }
+
+
+}
+
+
+function openLineModal(idx, archiveId=null){
+
+
+  const l = archiveId
+
+
+    ? state.roundsArchive.find(a=>a.id===archiveId).lines[idx]
+
+
+    : state.lines[idx];
+
+
+  document.getElementById('modal-line-idx').value = idx;
+
+
+  document.getElementById('modal-archive-id').value = archiveId || '';
+
+
+  document.getElementById('modal-line-num').textContent = idx+1;
+
+
+  document.getElementById('modal-name').value = l.name||'';
+
+
+  document.getElementById('modal-phone').value = l.phone||'';
+
+
+  document.getElementById('modal-notes').value = l.notes||'';
+
+
+  const radios = document.querySelectorAll('input[name=pay-status]');
+
+
+  radios.forEach(r=>r.checked = r.value===(l.status||'free'));
+
+
+  openModal('line-modal');
+
+
+}
+
+
+function saveLine(){
+
+
+  const idx = parseInt(document.getElementById('modal-line-idx').value);
+
+
+  const archiveIdRaw = document.getElementById('modal-archive-id').value;
+
+
+  const archiveId = archiveIdRaw ? parseInt(archiveIdRaw) : null;
+
+
+  const status = document.querySelector('input[name=pay-status]:checked')?.value || 'free';
+
+
+  const newLine = {
+
+
+    name: document.getElementById('modal-name').value.trim(),
+
+
+    phone: document.getElementById('modal-phone').value.trim(),
+
+
+    notes: document.getElementById('modal-notes').value.trim(),
+
+
+    status,
+
+
+  };
+
+
+  if(archiveId){
+
+
+    const entry = state.roundsArchive.find(a=>a.id===archiveId);
+
+
+    if(entry) entry.lines[idx] = newLine;
+
+
+  } else {
+
+
+    state.lines[idx] = newLine;
+
+
+  }
+
+
+  saveToFirebase(); saveLocal();
+
+
+  renderAll();
+
+
+  closeModal('line-modal');
+
+
+  showToast(`Línea ${idx+1} actualizada`,'success');
+
+
+}
+
+
+function deleteLine(){
+
+
+  const idx = parseInt(document.getElementById('modal-line-idx').value);
+
+
+  const archiveIdRaw = document.getElementById('modal-archive-id').value;
+
+
+  const archiveId = archiveIdRaw ? parseInt(archiveIdRaw) : null;
+
+
+  const emptyLine = {name:'',phone:'',notes:'',status:'free'};
+
+
+  if(archiveId){
+
+
+    const entry = state.roundsArchive.find(a=>a.id===archiveId);
+
+
+    if(entry) entry.lines[idx] = emptyLine;
+
+
+  } else {
+
+
+    state.lines[idx] = emptyLine;
+
+
+  }
+
+
+  saveToFirebase(); saveLocal();
+
+
+  renderAll();
+
+
+  closeModal('line-modal');
+
+
+  showToast(`Línea ${idx+1} liberada`,'success');
+
+
+}
+
+
+// ─── Multi-line assignment (asignar varias líneas al mismo contacto) ──
+// Solo aplica sobre la ronda EN VIVO (no sobre rondas archivadas en Historial).
+function openMultiLineModal(){
+  const el = document.getElementById('multi-line-checklist');
+  el.innerHTML = state.lines.map((l,i)=>{
+    const taken = l.name && l.name.trim()!=='';
+    const label = taken ? `${i+1}. ${l.name}` : `${i+1}. (libre)`;
+    return `<label style="display:flex;align-items:center;gap:6px;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 8px;cursor:pointer;">
+      <input type="checkbox" class="multi-line-check" value="${i}" style="accent-color:var(--gold);"/>
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${label}</span>
+    </label>`;
+  }).join('');
+  document.getElementById('multi-modal-name').value = '';
+  document.getElementById('multi-modal-phone').value = '';
+  document.getElementById('multi-modal-notes').value = '';
+  const radios = document.querySelectorAll('input[name=multi-pay-status]');
+  radios.forEach(r=>r.checked = r.value==='pending');
+  openModal('multi-line-modal');
+}
+async function pickContactMulti(){
+  if(!('contacts' in navigator && 'ContactsManager' in window)){
+    showToast('Tu navegador no soporta acceso a contactos. Usa Chrome en Android.','error');
+    return;
+  }
+  try{
+    const props = ['name','tel'];
+    const opts = {multiple:false};
+    const contacts = await navigator.contacts.select(props, opts);
+    if(contacts && contacts.length){
+      const c = contacts[0];
+      if(c.name && c.name.length) document.getElementById('multi-modal-name').value = c.name[0];
+      if(c.tel && c.tel.length) document.getElementById('multi-modal-phone').value = c.tel[0];
+    }
+  }catch(err){
+    console.error('Error al leer contacto:', err);
+    showToast('No se pudo acceder a los contactos.','error');
+  }
+}
+function saveMultiLine(){
+  const checks = Array.from(document.querySelectorAll('.multi-line-check:checked')).map(c=>parseInt(c.value));
+  if(!checks.length){
+    showToast('Selecciona al menos una línea.','error');
+    return;
+  }
+  const name = document.getElementById('multi-modal-name').value.trim();
+  if(!name){
+    showToast('Escribe el nombre del contacto.','error');
+    return;
+  }
+  const phone = document.getElementById('multi-modal-phone').value.trim();
+  const notes = document.getElementById('multi-modal-notes').value.trim();
+  const status = document.querySelector('input[name=multi-pay-status]:checked')?.value || 'pending';
+  checks.forEach(idx=>{
+    state.lines[idx] = { name, phone, notes, status };
+  });
+  saveToFirebase(); saveLocal();
+  renderAll();
+  closeModal('multi-line-modal');
+  showToast(`${checks.length} línea(s) asignada(s) a ${name}`,'success');
+}
+
+
+
+
+
+// ─── Admin Tabs ──────────────────────────────
+
+
+function switchAdminTab(tab){
+
+
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+
+
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+
+
+  document.getElementById('admtab-btn-'+tab).classList.add('active');
+
+
+  document.getElementById('admtab-'+tab).classList.add('active');
+
+
+}
+
+
+
+
+
+// ─── Render ──────────────────────────────────
+
+
+function renderAll(){
+
+
+  renderInfoBars();
+
+
+  renderBoard('board-grid');
+
+
+  renderBoard('p-board-grid');
+
+
+  renderCurrentBall();
+
+
+  renderLines();
+
+
+  renderPubLines();
+
+
+  renderHistory();
+
+
+  syncInputs();
+
+
+  updateButtons();
+
+
+  renderAdminConfigPanel();
+
+
+  updateWinnerRouletteButton();
+
+
+}
+
+
+
+
+
+function syncInputs(){
+
+
+  const inp = v=>{ try{return document.getElementById(v);}catch(e){return null;} };
+
+
+  if(inp('inp-round')) inp('inp-round').value = state.round;
+
+
+  if(inp('inp-price')) inp('inp-price').value = state.price;
+
+
+  if(inp('inp-prize')) inp('inp-prize').value = state.prize;
+
+
+  if(inp('inp-accum')) inp('inp-accum').value = state.accum;
+
+
+}
+
+
+
+
+
+function renderInfoBars(){
+
+
+  const s = state;
+
+
+  // Admin
+
+
+  const ar = document.getElementById('a-round');
+
+
+  if(ar) ar.textContent = s.round;
+
+
+  const ab = document.getElementById('a-state-badge');
+
+
+  if(ab){ ab.className='state-badge'; ab.className+=' '+stateClass(s.status); ab.textContent=stateLabel(s.status); }
+
+
+  // Public
+
+
+  const pr = document.getElementById('p-round');
+
+
+  if(pr) pr.textContent = s.round;
+
+
+  const pb = document.getElementById('p-state-badge');
+
+
+  if(pb){ pb.className='state-badge'; pb.className+=' '+stateClass(s.status); pb.textContent=stateLabel(s.status); }
+
+
+  const pp = document.getElementById('p-prize');
+
+
+  if(pp) pp.textContent = s.prize||'$0';
+
+
+  const pa = document.getElementById('p-accum');
+
+
+  if(pa) pa.textContent = s.accum||'$0';
+
+
+  const ppr = document.getElementById('p-price');
+
+
+  if(ppr) ppr.textContent = s.price||'$0';
+
+
+}
+
+
+function stateClass(st){
+
+
+  return {idle:'state-idle',active:'state-active',paused:'state-paused',finished:'state-finished'}[st]||'state-idle';
+
+
+}
+
+
+function stateLabel(st){
+
+
+  return {idle:'Inactivo',active:'🟢 En Juego',paused:'⏸ Pausado',finished:'🏁 Finalizado'}[st]||st;
+
+
+}
+
+
+
+
+
+function renderBoard(gridId){
+
+
+  const grid = document.getElementById(gridId);
+
+
+  if(!grid) return;
+
+
+  const calledSet = new Set(state.balls);
+
+
+  const winnerLine = state.winner ? state.winner.lineIdx : -1;
+
+
+
+
+
+  // Build 15 rows × 5 cols
+
+
+  // Ball at row r (0-based), col c (0-based) = r+1 + c*15
+
+
+  const cells = [];
+
+
+  for(let r=0;r<15;r++){
+
+
+    for(let c=0;c<5;c++){
+
+
+      const num = r+1 + c*15;
+
+
+      const called = calledSet.has(num);
+
+
+      const winner = (winnerLine === r) && called;
+
+
+      const cls = winner ? 'ball-cell winner-line' : called ? 'ball-cell called' : 'ball-cell';
+
+
+      cells.push(`<div class="${cls}">${num}</div>`);
+
+
+    }
+
+
+  }
+
+
+  grid.innerHTML = cells.join('');
+
+
+}
+
+
+
+
+
+function renderCurrentBall(){
+
+
+  const calledBalls = state.balls;
+
+
+  const current = calledBalls.length > 0 ? calledBalls[calledBalls.length-1] : null;
+
+
+  const count = calledBalls.length;
+
+
+  const recent = calledBalls.slice(-5,-1).reverse();
+
+
+
+
+
+  // Admin
+
+
+  const ad = document.getElementById('current-ball-display');
+
+
+  if(ad){
+
+
+    if(current){ ad.className='current-ball'; ad.textContent=current; }
+
+
+    else{ ad.className='current-ball empty'; ad.textContent='–'; }
+
+
+  }
+
+
+  const ac = document.getElementById('ball-count');
+
+
+  if(ac) ac.textContent = count;
+
+
+  const ar = document.getElementById('recent-balls-display');
+
+
+  if(ar) ar.innerHTML = recent.map(b=>`<div class="recent-ball">${b}</div>`).join('');
+
+
+
+
+
+  // Public
+
+
+  const pd = document.getElementById('p-current-ball');
+
+
+  if(pd){
+
+
+    if(current){ pd.className='current-ball'; pd.textContent=current; }
+
+
+    else{ pd.className='current-ball empty'; pd.textContent='–'; }
+
+
+  }
+
+
+  const pc = document.getElementById('p-ball-count');
+
+
+  if(pc) pc.textContent = count;
+
+
+  const pr = document.getElementById('p-recent-balls');
+
+
+  if(pr) pr.innerHTML = recent.map(b=>`<div class="recent-ball">${b}</div>`).join('');
+
+
+}
+
+
+
+
+
+function renderLines(){
+
+
+  const el = document.getElementById('lines-admin');
+
+
+  if(!el) return;
+
+
+  const calledSet = new Set(state.balls);
+
+
+  const winnerLine = state.winner ? state.winner.lineIdx : -1;
+
+
+  el.innerHTML = state.lines.map((l,i)=>{
+
+
+    const balls = getBallsForLine(i);
+
+
+    const hits = balls.filter(b=>calledSet.has(b)).length;
+
+
+    const statusCls = l.status==='paid'?'paid':l.status==='pending'?'pending':'free';
+
+
+    const winCls = winnerLine===i ? ' winner' : '';
+
+
+    const statusLabel = l.status==='paid'?'<span class="line-status status-paid">✅ Pagó</span>':
+
+
+      l.status==='pending'?'<span class="line-status status-pending">❌ Pendiente</span>':
+
+
+      '<span class="line-status status-free">⬜ Libre</span>';
+
+
+    return `<div class="line-item ${statusCls}${winCls}" onclick="openLineModal(${i})">
+
+
+      <div class="line-num">${i+1}</div>
+
+
+      <div class="line-info">
+
+
+        <div class="line-name">${l.name||`Línea ${i+1}`}</div>
+
+
+        <div class="line-balls">${balls.join(' · ')} | Hits: ${hits}/5</div>
+
+
+      </div>
+
+
+      ${statusLabel}
+
+
+    </div>`;
+
+
+  }).join('');
+
+
+}
+
+
+
+
+
+function renderPubLines(){
+
+
+  const el = document.getElementById('p-lines-display');
+
+
+  if(!el) return;
+
+
+  const calledSet = new Set(state.balls);
+
+
+  const winnerLine = state.winner ? state.winner.lineIdx : -1;
+
+
+  el.innerHTML = state.lines.map((l,i)=>{
+
+
+    const balls = getBallsForLine(i);
+
+
+    const hits = balls.filter(b=>calledSet.has(b)).length;
+
+
+    const winCls = winnerLine===i ? ' winner' : '';
+
+
+    const dots = balls.map((b,di)=>{
+
+
+      const hit = calledSet.has(b);
+
+
+      const winDot = hit && winnerLine===i;
+
+
+      return `<div class="prog-dot ${hit?'hit':''}${winDot?' win':''}"></div>`;
+
+
+    }).join('');
+
+
+    return `<div class="pub-line${winCls}">
+
+
+      <div class="pub-line-num">${i+1}</div>
+
+
+      <div class="pub-line-info">
+
+
+        <div class="pub-line-name">${l.name || `Línea ${i+1}`}</div>
+
+
+        <div class="pub-line-balls" style="font-size:10px;color:var(--gray);">${balls.join('·')}</div>
+
+
+      </div>
+
+
+      <div class="pub-line-progress">${dots}</div>
+
+
+    </div>`;
+
+
+  }).join('');
+
+
+}
+
+
+
+
+
+function renderHistory(){
+
+
+  const el = document.getElementById('history-list');
+
+
+  if(!el) return;
+
+
+  const entries = getHistoryEntries();
+
+
+  if(!entries.length){
+
+
+    el.innerHTML = '<p style="color:var(--gray);font-size:12px;">Sin partidas registradas.</p>';
+
+
+    return;
+
+
+  }
+
+
+  el.innerHTML = entries.map(e=>{
+
+
+    const playerCount = e.lines ? e.lines.filter(l=>l.name && l.name.trim()!=='').length : null;
+
+
+    const h = e.hist;
+
+
+    const winnerTxt = h ? `${h.winner && h.winner!=='—' ? h.winner : 'Sin ganador'}${h.line && h.line!=='—' ? ' · '+h.line : ''}` : 'Sin datos';
+
+
+    return `
+
+
+    <div class="history-card" onclick="openRoundDetail('${e.archiveId||''}','${e.round}')" style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px 12px;margin-bottom:6px;cursor:pointer;">
+
+
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+
+
+        <span style="font-size:12px;font-weight:600;">Ronda ${e.round} <span style="color:var(--gray);font-weight:400;">(${e.date} ${e.time||''})</span></span>
+
+
+        <span style="font-size:11px;color:var(--gold);white-space:nowrap;">Ver detalle ›</span>
+
+
+      </div>
+
+
+      <div style="margin-top:6px;font-size:11px;color:var(--gray);display:flex;flex-wrap:wrap;gap:10px;">
+
+
+        ${playerCount!==null ? `<span>🧍 Jugadores: ${playerCount}/15</span>` : ''}
+
+
+        <span>🏆 Ganador: ${winnerTxt}</span>
+
+
+        ${h ? `<span>💰 Premio: ${h.prize}</span>` : ''}
+
+
+        ${h && h.roulette ? `<span>🎡 Ruleta: ${h.roulette}${h.wonAccum ? ' · 🤑 ¡Ganó el Acumulado!' : ''}</span>` : ''}
+
+
+      </div>
+
+
+    </div>`;
+
+
+  }).join('');
+
+
+}
+
+
+
+
+
+function updateButtons(){
+
+
+  const s = state.status;
+
+
+  const setBtn = (id, disabled)=>{ const b=document.getElementById(id); if(b) b.disabled=disabled; };
+
+
+  const show = (id, show)=>{ const b=document.getElementById(id); if(b) b.style.display=show?'':'none'; };
+
+
+
+
+
+  setBtn('btn-start',  s==='active'||s==='paused'||s==='finished');
+
+
+  setBtn('btn-pause',  s!=='active');
+
+
+  setBtn('btn-stop',   s==='idle'||s==='finished');
+
+
+  setBtn('btn-draw',   s!=='active');
+
+
+  setBtn('btn-auto',   s!=='active');
+
+
+
+
+
+  show('btn-pause', s!=='paused');
+
+
+  show('btn-resume', s==='paused');
+
+
+  setBtn('btn-resume', s!=='paused');
+
+
+
+
+
+  setBtn('btn-spin-roulette', !(state.winner && !state.roulette));
+
+
+}
+
+
+
+
+
+// ─── Winner UI ──────────────────────────────
+
+
+function showWinner(w){
+
+
+  document.getElementById('wo-line-label').textContent = `LÍNEA ${w.lineIdx+1}`;
+
+
+  document.getElementById('wo-name').textContent = w.name;
+
+
+  document.getElementById('wo-detail').textContent = `Ha completado su línea completa`;
+
+
+  document.getElementById('wo-prize').textContent = w.prize || state.prize;
+
+
+  document.getElementById('winner-overlay').classList.add('open');
+
+
+  spawnConfetti();
+
+
+  updateWinnerRouletteButton();
+
+
+}
+
+
+// Muestra los botones de admin (ir a ruleta / cerrar) SOLO en el
+
+
+// dispositivo del admin, y solo mientras haya un ganador pendiente.
+
+
+function updateWinnerRouletteButton(){
+
+
+  const btn = document.getElementById('wo-btn-roulette');
+
+
+  const skip = document.getElementById('wo-btn-skip');
+
+
+  const show = !!(isAdminContext() && state.winner && !state.roulette);
+
+
+  if(btn) btn.style.display = show ? 'block' : 'none';
+
+
+  if(skip) skip.style.display = show ? 'inline-block' : 'none';
+
+
+}
+
+
+function goToRouletteFromWinner(){
+
+
+  if(!isAdminContext()){ warnNotAdmin(); return; }
+
+
+  spinRoulette();
+
+
+}
+
+
+
+
+
+// ─── Roulette UI (sorteo del acumulado) ─────
+
+
+function showRoulette(r){
+
+
+  const overlay = document.getElementById('roulette-overlay');
+
+
+  const numEl = document.getElementById('reel-number');
+
+
+  const resEl = document.getElementById('ro-result');
+
+
+  resEl.style.display = 'none';
+
+
+  numEl.classList.remove('landed');
+
+
+  overlay.classList.add('open');
+
+
+
+
+
+  let ticks = 0;
+
+
+  const totalTicks = 24;
+
+
+  let delay = 60;
+
+
+  function tick(){
+
+
+    ticks++;
+
+
+    if(ticks < totalTicks){
+
+
+      numEl.textContent = Math.floor(Math.random()*15)+1;
+
+
+      playBallSound();
+
+
+      delay = delay * 1.15; // desacelera el giro
+
+
+      setTimeout(tick, delay);
+
+
+    } else {
+
+
+      numEl.textContent = r.number;
+
+
+      numEl.classList.add('landed');
+
+
+      revealRouletteResult(r);
+
+
+    }
+
+
+  }
+
+
+  tick();
+
+
+}
+
+
+function revealRouletteResult(r){
+
+
+  playWinnerSound();
+
+
+  const resEl = document.getElementById('ro-result');
+
+
+  const msgEl = document.getElementById('ro-msg');
+
+
+  const winLine = state.winner ? state.winner.lineIdx+1 : null;
+
+
+  resEl.style.display = 'block';
+
+
+  if(r.wonAccum){
+
+
+    msgEl.innerHTML = `🤑 ¡Coincide con la Línea ${winLine}!<br>Se lleva también el <strong>Acumulado</strong>: ${state.accum}`;
+
+
+    msgEl.style.color = 'var(--green2)';
+
+
+    spawnConfetti();
+
+
+  } else {
+
+
+    msgEl.innerHTML = `No coincidió con la Línea ganadora (${winLine}).<br>El Acumulado sigue creciendo para la próxima ronda.`;
+
+
+    msgEl.style.color = 'var(--gray)';
+
+
+  }
+
+
+  // Solo el admin ve "Terminar Ronda"; el público solo ve "Continuar".
+
+
+  const finishBtn = document.getElementById('ro-btn-finish');
+
+
+  const continueBtn = document.getElementById('ro-btn-continue');
+
+
+  const admin = isAdminContext();
+
+
+  if(finishBtn) finishBtn.style.display = admin ? 'inline-block' : 'none';
+
+
+  if(continueBtn) continueBtn.style.display = admin ? 'none' : 'inline-block';
+
+
+  updateWinnerRouletteButton();
+
+
+}
+
+
+function closeRouletteOverlay(){
+
+
+  document.getElementById('roulette-overlay').classList.remove('open');
+
+
+}
+
+
+// Botón admin "🏁 Terminar Ronda" / "✕ Cerrar": cierra AMBOS overlays de
+
+
+// verdad, borrando el ganador y el resultado de ruleta del estado
+
+
+// compartido (Firebase), para que no se vuelvan a abrir solos al volver a
+
+
+// entrar al panel. NO borra jugadores/balotas — eso lo hace "🆕 Nueva
+
+
+// Ronda" cuando el admin decide iniciar la siguiente ronda.
+
+
+function finishRoundView(){
+
+
+  if(!isAdminContext()){ warnNotAdmin(); return; }
+
+
+  state.winner = null;
+
+
+  state.roulette = null;
+
+
+  closeRouletteOverlay();
+
+
+  const wo = document.getElementById('winner-overlay');
+
+
+  if(wo) wo.classList.remove('open');
+
+
+  saveToFirebase();
+
+
+  saveLocal();
+
+
+  renderAll();
+
+
+  showToast('Ronda cerrada. Configura la siguiente ronda desde el panel.','success');
+
+
+}
+
+
+// Antes este chequeo exigía también `currentUser` (sesión de Firebase
+
+
+// Auth), pero eso depende de una resolución ASÍNCRONA que no está
+
+
+// garantizada a tiempo cuando se abre el overlay del ganador — y si
+
+
+// fallaba una sola vez, nada la volvía a intentar (la ronda queda
+
+
+// "finished" y ya no se generan más renders). Resultado: los botones de
+
+
+// salida quedaban invisibles para siempre. Se alinea ahora con el resto
+
+
+// de acciones del panel (Nueva Ronda, Girar Ruleta Ahora, Guardar), que
+
+
+// tampoco dependen de `currentUser`: basta con estar viendo el panel
+
+
+// admin, algo 100% sincrónico y confiable (para llegar aquí ya tuviste
+
+
+// que pasar por el login).
+
+
+function isAdminContext(){
+
+
+  const v = document.getElementById('view-admin');
+
+
+  return !!(v && v.classList.contains('active'));
+
+
+}
+
+
+// Avisa por qué se bloqueó una acción de admin, en vez de fallar en silencio.
+
+
+function warnNotAdmin(){
+
+
+  showToast('Esta acción es solo para el panel de administrador.','error');
+
+
+}
+
+
+function spawnConfetti(){
+
+
+  const wrap = document.getElementById('confetti-wrap');
+
+
+  wrap.innerHTML = '';
+
+
+  const colors = ['#FFD700','#C0392B','#27AE60','#8A2BE2','#FFFFFF','#FFA500'];
+
+
+  for(let i=0;i<80;i++){
+
+
+    const el = document.createElement('div');
+
+
+    el.className = 'confetti-piece';
+
+
+    el.style.cssText = `
+
+
+      left:${Math.random()*100}%;
+
+
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+
+
+      animation-duration:${2+Math.random()*3}s;
+
+
+      animation-delay:${Math.random()*2}s;
+
+
+      width:${6+Math.random()*8}px;
+
+
+      height:${6+Math.random()*8}px;
+
+
+      border-radius:${Math.random()>.5?'50%':'2px'};
+
+
+    `;
+
+
+    wrap.appendChild(el);
+
+
+  }
+
+
+}
+
+
+
+
+
+// ─── Modals ──────────────────────────────────
+
+
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+
+
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+
+
+
+
+// ─── Toast ───────────────────────────────────
+
+
+let toastTimer = null;
+
+
+function showToast(msg, type=''){
+
+
+  const t = document.getElementById('toast');
+
+
+  t.textContent = msg;
+
+
+  t.className = 'toast show' + (type?' '+type:'');
+
+
+  clearTimeout(toastTimer);
+
+
+  toastTimer = setTimeout(()=>{ t.classList.remove('show'); }, 3000);
+
+
+}
+
+
+
+
+
+// ─── Stars Background ────────────────────────
+
+
+function createStars(){
+
+
+  const el = document.getElementById('stars-bg');
+
+
+  if(!el) return;
+
+
+  let html = '';
+
+
+  for(let i=0;i<120;i++){
+
+
+    const x=Math.random()*100, y=Math.random()*100;
+
+
+    const s=Math.random()*2+0.5;
+
+
+    const op=Math.random()*0.7+0.3;
+
+
+    const delay=Math.random()*4;
+
+
+    html+=`<div style="position:absolute;left:${x}%;top:${y}%;width:${s}px;height:${s}px;background:#fff;border-radius:50%;opacity:${op};animation:twinkle ${2+delay}s ease-in-out infinite alternate;animation-delay:${delay}s;"></div>`;
+
+
+  }
+
+
+  el.innerHTML = html;
+
+
+}
+
+
+
+
+
+// ─── Boot ────────────────────────────────────
+
+
+document.addEventListener('DOMContentLoaded', ()=>{
+
+
+  createStars();
+
+
+  populateForcedSelects();
+
+
+  tryLoadSaved();
+
+
+  renderAll();
+
+
+
+
+
+  // Close modals on overlay click
+
+
+  document.querySelectorAll('.modal-overlay').forEach(m=>{
+
+
+    m.addEventListener('click', e=>{ if(e.target===m) m.classList.remove('open'); });
+
+
+  });
+
+
+});
+
+
+function populateForcedSelects(){
+
+
+  const selL = document.getElementById('sel-forced-line');
+
+
+  const selR = document.getElementById('sel-forced-roulette');
+
+
+  for(let i=1;i<=15;i++){
+
+
+    if(selL) selL.insertAdjacentHTML('beforeend', `<option value="${i}">Línea ${i}</option>`);
+
+
+    if(selR) selR.insertAdjacentHTML('beforeend', `<option value="${i}">Número ${i}</option>`);
+
+
+  }
+
+
+}
+
+
+</script>
+
+
+
+
+
+<style>
+
+
+/* Extra: twinkle star animation */
+
+
+@keyframes twinkle{
+
+
+  from{opacity:.2;}
+
+
+  to{opacity:.9;}
+
+
+}
+
+
+</style>
+
+
+</body>
+
+
 </html>
