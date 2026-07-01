@@ -658,7 +658,8 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
       <div class="panel">
         <div class="panel-title">🎡 Ruleta del Acumulado</div>
         <p style="font-size:12px;color:var(--gray);margin-bottom:10px;">
-          Gira sola ~5s después de anunciar al ganador. Si necesitas adelantarla o repetirla, usa este botón.
+          Ya NO gira sola. Cuando salga un ganador, verás un botón "🎡 Ir a la Ruleta" en esa misma pantalla.
+          Si prefieres, también puedes girarla manualmente desde aquí.
         </p>
         <button class="btn btn-gold" style="width:100%" id="btn-spin-roulette" onclick="spinRoulette()">🎡 Girar Ruleta Ahora</button>
       </div>
@@ -894,6 +895,7 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
   <div class="winner-name" id="wo-name">Pablo Castro</div>
   <div class="winner-detail" id="wo-detail">Ha completado su línea</div>
   <div class="winner-prize" id="wo-prize">$20.000</div>
+  <button class="btn btn-gold" id="wo-btn-roulette" style="margin-top:20px;display:none;" onclick="goToRouletteFromWinner()">🎡 Ir a la Ruleta</button>
 </div>
 
 <!-- ═══════════════════ ROULETTE OVERLAY ═══════════════════ -->
@@ -905,7 +907,10 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
   <div class="roulette-result" id="ro-result" style="display:none;">
     <div class="roulette-number-label">Resultado</div>
     <div class="roulette-msg" id="ro-msg"></div>
-    <button class="btn btn-gold" style="margin-top:14px;" onclick="closeRouletteOverlay()">Continuar</button>
+    <div class="btn-row" style="margin-top:14px;">
+      <button class="btn btn-ghost" id="ro-btn-continue" onclick="closeRouletteOverlay()">Continuar</button>
+      <button class="btn btn-gold" id="ro-btn-finish" style="display:none;" onclick="finishRoundView()">🏁 Terminar Ronda</button>
+    </div>
   </div>
 </div>
 
@@ -1176,6 +1181,7 @@ function doInitFirebase(cfg){
     db = firebase.database();
     firebaseRef = db.ref(FB_PATH);
     // Listen for remote changes
+    let firstSnapshot = true;
     firebaseRef.on('value', snap=>{
       const data = snap.val();
       if(data){
@@ -1185,8 +1191,19 @@ function doInitFirebase(cfg){
         if(!data.history) state.history = [];
         if(!data.roundsArchive) state.roundsArchive = [];
         renderAll();
-        checkWinnerDisplay();
-        checkRouletteDisplay();
+        if(firstSnapshot){
+          // En la PRIMERA sincronización (recién se abrió la página) no
+          // reproducimos el overlay de ganador/ruleta de una ronda anterior
+          // que haya quedado sin cerrar: solo "marcamos como ya vistos" esos
+          // resultados. Así evitamos que la ruleta/ganador se disparen solos
+          // al entrar a la página.
+          firstSnapshot = false;
+          lastWinnerTs = state.winner ? state.winner.ts : 0;
+          lastRouletteTs = state.roulette ? state.roulette.ts : 0;
+        } else {
+          checkWinnerDisplay();
+          checkRouletteDisplay();
+        }
       }
     });
     document.getElementById('firebase-status').textContent = '🟢 Firebase conectado';
@@ -1336,19 +1353,12 @@ function checkWinner(){
       saveLocal();
       renderAll();
       saveHistory();
-      scheduleRouletteSpin();
+      // La ruleta YA NO gira sola: el admin la dispara a mano con el botón
+      // "🎡 Ir a la Ruleta" que aparece en el overlay de ganador (ver
+      // updateWinnerRouletteButton / goToRouletteFromWinner).
       return;
     }
   }
-}
-// Programa el giro automático de la ruleta unos segundos después del
-// ganador (da tiempo a ver el overlay y confeti). Solo corre en el
-// dispositivo admin, que es el único que llama a checkWinner().
-function scheduleRouletteSpin(){
-  if(rouletteSpinTimeout) clearTimeout(rouletteSpinTimeout);
-  rouletteSpinTimeout = setTimeout(()=>{
-    if(state.winner && !state.roulette) spinRoulette();
-  }, 4500);
 }
 // Gira la ruleta 1-15. Si hay un número forzado configurado, se usa (y se
 // desactiva automáticamente); si no, sale un número al azar.
@@ -1725,6 +1735,7 @@ function renderAll(){
   syncInputs();
   updateButtons();
   renderAdminConfigPanel();
+  updateWinnerRouletteButton();
 }
 
 function syncInputs(){
@@ -1914,6 +1925,18 @@ function showWinner(w){
   document.getElementById('wo-prize').textContent = w.prize || state.prize;
   document.getElementById('winner-overlay').classList.add('open');
   spawnConfetti();
+  updateWinnerRouletteButton();
+}
+// Muestra el botón "Ir a la Ruleta" SOLO en el dispositivo del admin, y
+// solo mientras haya un ganador pendiente de ruleta.
+function updateWinnerRouletteButton(){
+  const btn = document.getElementById('wo-btn-roulette');
+  if(!btn) return;
+  btn.style.display = (isAdminContext() && state.winner && !state.roulette) ? 'block' : 'none';
+}
+function goToRouletteFromWinner(){
+  if(!isAdminContext()){ warnNotAdmin(); return; }
+  spinRoulette();
 }
 
 // ─── Roulette UI (sorteo del acumulado) ─────
@@ -1957,9 +1980,25 @@ function revealRouletteResult(r){
     msgEl.innerHTML = `No coincidió con la Línea ganadora (${winLine}).<br>El Acumulado sigue creciendo para la próxima ronda.`;
     msgEl.style.color = 'var(--gray)';
   }
+  // Solo el admin ve "Terminar Ronda"; el público solo ve "Continuar".
+  const finishBtn = document.getElementById('ro-btn-finish');
+  const continueBtn = document.getElementById('ro-btn-continue');
+  const admin = isAdminContext();
+  if(finishBtn) finishBtn.style.display = admin ? 'inline-block' : 'none';
+  if(continueBtn) continueBtn.style.display = admin ? 'none' : 'inline-block';
+  updateWinnerRouletteButton();
 }
 function closeRouletteOverlay(){
   document.getElementById('roulette-overlay').classList.remove('open');
+}
+// Botón admin "🏁 Terminar Ronda": cierra ambos overlays y devuelve al
+// admin al panel para configurar la siguiente ronda (no borra datos; eso
+// lo hace el botón "🆕 Nueva Ronda" del panel cuando el admin lo decida).
+function finishRoundView(){
+  closeRouletteOverlay();
+  const wo = document.getElementById('winner-overlay');
+  if(wo) wo.classList.remove('open');
+  showToast('Listo. Configura la siguiente ronda desde el panel.','success');
 }
 function isAdminContext(){
   const v = document.getElementById('view-admin');
