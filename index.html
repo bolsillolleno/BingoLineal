@@ -4436,7 +4436,11 @@ function startAutoMode(){
   if(state.status !== 'active') return;
 
 
-  shuffleRemaining();
+  // Si hay una línea forzada armada para esta ronda, remainingBalls ya
+  // contiene el orden preparado por buildForcedOrder(): no lo pisamos.
+  if(!roundForcedLine){
+    shuffleRemaining();
+  }
 
 
   autoActive = true;
