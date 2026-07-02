@@ -1111,10 +1111,100 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
 .roulette-title{font-family:var(--ff-num);font-size:clamp(22px,5vw,34px);color:var(--purple2);letter-spacing:3px;text-shadow:0 0 24px rgba(138,43,226,0.6);}
 
 
-.reel-frame{
+.wheel-frame{
 
 
-  width:clamp(150px,45vw,220px);height:clamp(150px,45vw,220px);
+  width:clamp(220px,60vw,320px);height:clamp(220px,60vw,320px);
+
+
+  border-radius:50%;
+
+
+  position:relative;
+
+
+  display:flex;align-items:center;justify-content:center;
+
+
+  filter:drop-shadow(0 0 30px rgba(255,215,0,0.35));
+
+
+}
+
+
+.wheel-pointer{
+
+
+  position:absolute;top:-6px;left:50%;transform:translateX(-50%);
+
+
+  font-size:clamp(28px,7vw,40px);color:var(--gold);
+
+
+  text-shadow:0 0 14px rgba(255,215,0,0.8);
+
+
+  z-index:5;line-height:1;
+
+
+}
+
+
+.wheel-disc{
+
+
+  width:100%;height:100%;border-radius:50%;
+
+
+  border:5px solid var(--gold);
+
+
+  box-shadow:0 0 40px rgba(255,215,0,0.4), inset 0 0 30px rgba(0,0,0,0.6);
+
+
+  position:relative;overflow:hidden;
+
+
+  transform:rotate(0deg);
+
+
+}
+
+
+.wheel-number-wrap{
+
+
+  position:absolute;top:0;left:50%;width:2px;height:50%;
+
+
+  transform-origin:50% 100%;
+
+
+}
+
+
+.wheel-number{
+
+
+  position:absolute;top:6%;left:50%;transform:translateX(-50%);
+
+
+  font-family:var(--ff-num);font-size:clamp(16px,4vw,22px);color:var(--gold);
+
+
+  text-shadow:0 0 8px rgba(255,215,0,0.7);
+
+
+}
+
+
+.wheel-hub{
+
+
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+
+
+  width:clamp(46px,12vw,64px);height:clamp(46px,12vw,64px);
 
 
   border-radius:50%;
@@ -1123,46 +1213,19 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
   background:radial-gradient(circle at 35% 30%, var(--bg3), var(--bg));
 
 
-  border:4px solid var(--gold);
-
-
-  box-shadow:0 0 40px rgba(255,215,0,0.4), inset 0 0 30px rgba(0,0,0,0.6);
+  border:3px solid var(--gold);
 
 
   display:flex;align-items:center;justify-content:center;
 
 
-  position:relative;
+  font-size:clamp(18px,5vw,26px);
 
 
-}
+  z-index:4;
 
 
-.reel-number{
-
-
-  font-family:var(--ff-num);font-size:clamp(60px,16vw,96px);color:var(--gold);
-
-
-  text-shadow:0 0 20px rgba(255,215,0,0.6);
-
-
-}
-
-
-.reel-number.landed{animation:reelLanded .6s ease;}
-
-
-@keyframes reelLanded{
-
-
-  0%{transform:scale(1.4);}
-
-
-  50%{transform:scale(0.9);}
-
-
-  100%{transform:scale(1);}
+  box-shadow:0 0 16px rgba(255,215,0,0.4);
 
 
 }
@@ -1531,7 +1594,7 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
   .winner-trophy{font-size:56px;}
 
 
-  .reel-frame{width:clamp(130px,65vw,190px);height:clamp(130px,65vw,190px);}
+  .wheel-frame{width:clamp(190px,75vw,260px);height:clamp(190px,75vw,260px);}
 
 
   .reel-item{height:clamp(130px,65vw,190px);}
@@ -2763,10 +2826,16 @@ html,body{height:100%;font-family:var(--ff-ui);background:var(--bg);color:var(--
   <div class="roulette-title">🎡 RULETA DEL ACUMULADO</div>
 
 
-  <div class="reel-frame">
+  <div class="wheel-frame">
 
 
-    <div class="reel-number" id="reel-number">–</div>
+    <div class="wheel-pointer">▼</div>
+
+
+    <div class="wheel-disc" id="wheel-disc"></div>
+
+
+    <div class="wheel-hub">🎡</div>
 
 
   </div>
@@ -2914,6 +2983,9 @@ let lastRouletteTs = 0;
 
 
 let rouletteSpinTimeout = null;
+
+let rouletteTickInterval = null; // intervalo de sonido mientras gira el disco
+let wheelRotation = 0; // rotación acumulada actual del disco (grados)
 
 
 
@@ -4183,6 +4255,12 @@ function spinRoulette(){
 
   if(rouletteSpinTimeout){ clearTimeout(rouletteSpinTimeout); rouletteSpinTimeout=null; }
 
+  if(rouletteTickInterval){ clearInterval(rouletteTickInterval); rouletteTickInterval=null; }
+
+  const wd = document.getElementById('wheel-disc');
+
+  if(wd){ wd.style.transition = 'none'; }
+
 
   if(!state.winner || state.roulette) return;
 
@@ -4555,6 +4633,12 @@ function resetBoard(){
 
   if(rouletteSpinTimeout){ clearTimeout(rouletteSpinTimeout); rouletteSpinTimeout=null; }
 
+  if(rouletteTickInterval){ clearInterval(rouletteTickInterval); rouletteTickInterval=null; }
+
+  const wd = document.getElementById('wheel-disc');
+
+  if(wd){ wd.style.transition = 'none'; }
+
 
   state.balls = [];
 
@@ -4824,6 +4908,12 @@ function newRound(){
 
 
   if(rouletteSpinTimeout){ clearTimeout(rouletteSpinTimeout); rouletteSpinTimeout=null; }
+
+  if(rouletteTickInterval){ clearInterval(rouletteTickInterval); rouletteTickInterval=null; }
+
+  const wd = document.getElementById('wheel-disc');
+
+  if(wd){ wd.style.transition = 'none'; }
 
 
   const accumWon = state.accumWon;
@@ -5980,80 +6070,71 @@ function goToRouletteFromWinner(){
 // ─── Roulette UI (sorteo del acumulado) ─────
 
 
+// Construye una sola vez los 15 sectores y numeros de la ruleta fisica.
+// El sector del numero 1 empieza en 0 grados (arriba, bajo el puntero) y
+// avanza en sentido horario; cada sector mide 360/15 = 24 grados.
+function initRouletteWheel(){
+  const disc = document.getElementById('wheel-disc');
+  if(!disc || disc.dataset.built) return;
+  const sector = 360/15;
+  const colorA = '#1e1445', colorB = '#2d1b5e';
+  const stops = [];
+  for(let i=0;i<15;i++){
+    const c = i%2===0 ? colorA : colorB;
+    stops.push(`${c} ${i*sector}deg ${(i+1)*sector}deg`);
+  }
+  disc.style.background = `conic-gradient(${stops.join(',')})`;
+  let html = '';
+  for(let i=1;i<=15;i++){
+    const angle = (i-1)*sector + sector/2;
+    html += `<div class="wheel-number-wrap" style="transform:rotate(${angle}deg)"><span class="wheel-number">${i}</span></div>`;
+  }
+  disc.innerHTML = html;
+  disc.dataset.built = '1';
+}
+
 function showRoulette(r){
 
-
   const overlay = document.getElementById('roulette-overlay');
-
-
-  const numEl = document.getElementById('reel-number');
-
-
+  const disc = document.getElementById('wheel-disc');
   const resEl = document.getElementById('ro-result');
 
+  initRouletteWheel();
 
   resEl.style.display = 'none';
-
-
-  numEl.classList.remove('landed');
-
-
   overlay.classList.add('open');
 
+  const sector = 360/15;
+  // Centro del sector del numero ganador, medido desde el 0 grados del disco.
+  const targetCenter = (r.number-1)*sector + sector/2;
+  // Vueltas extra para dar sensacion de giro real (5 a 6 vueltas completas).
+  const extraSpins = 5 + Math.floor(Math.random()*2);
+  // Partimos de un multiplo limpio de 360 de la rotacion actual, sumamos
+  // las vueltas extra, y ajustamos para que el centro del sector ganador
+  // quede exactamente bajo el puntero fijo (arriba, 0 grados).
+  const baseRotation = wheelRotation - (wheelRotation % 360);
+  const finalRotation = baseRotation + extraSpins*360 + (360 - targetCenter);
 
+  disc.style.transition = 'none';
+  disc.style.transform = `rotate(${wheelRotation}deg)`;
+  // Forzar reflow para que el navegador aplique "transition:none" antes de animar.
+  disc.offsetHeight;
+  disc.style.transition = 'transform 4.6s cubic-bezier(0.12,0.62,0.18,1)';
 
+  rouletteTickInterval = setInterval(playBallSound, 110);
 
-
-  let ticks = 0;
-
-
-  const totalTicks = 24;
-
-
-  let delay = 60;
-
-
-  function tick(){
-
-
-    ticks++;
-
-
-    if(ticks < totalTicks){
-
-
-      numEl.textContent = Math.floor(Math.random()*15)+1;
-
-
-      playBallSound();
-
-
-      delay = delay * 1.15; // desacelera el giro
-
-
-      setTimeout(tick, delay);
-
-
-    } else {
-
-
-      numEl.textContent = r.number;
-
-
-      numEl.classList.add('landed');
-
-
-      revealRouletteResult(r);
-
-
-    }
-
-
+  function onEnd(e){
+    if(e.propertyName !== 'transform') return;
+    disc.removeEventListener('transitionend', onEnd);
+    if(rouletteTickInterval){ clearInterval(rouletteTickInterval); rouletteTickInterval=null; }
+    wheelRotation = finalRotation;
+    revealRouletteResult(r);
   }
+  disc.addEventListener('transitionend', onEnd);
 
-
-  tick();
-
+  requestAnimationFrame(()=>{
+    disc.style.transform = `rotate(${finalRotation}deg)`;
+  });
 
 }
 
@@ -6392,6 +6473,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
 
   createStars();
+
+
+  initRouletteWheel();
 
 
   populateForcedSelects();
